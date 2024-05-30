@@ -1,0 +1,48 @@
+{
+  "resourceType": "Patient",
+  "meta": {
+    "profile": [
+      "http://mimic.mit.edu/fhir/mimic/StructureDefinition/mimic-patient"
+    ]
+  },
+  "gender": "male",
+  "name": [
+    {
+      "use": "official",
+      "family": "Patient_10003400"
+    }
+  ],
+  "identifier": [
+    {
+      "value": "10003400",
+      "system": "http://mimic.mit.edu/fhir/mimic/identifier/patient"
+    }
+  ],
+  "maritalStatus": {
+    "coding": [
+      {
+        "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+        "code": "M"
+      }
+    ]
+  },
+  "birthDate": "2062-06-05",
+  "deceasedDateTime": "2137-09-02",
+  "extension": null,
+  "communication": [
+    {
+      "language": {
+        "coding": [
+          {
+            "system": "urn:ietf:bcp:47",
+            "code": "en"
+          }
+        ]
+      }
+    }
+  ],
+  "id": "0b332d90-4928-4176-8801-6608ab0ac33c",
+  "managingOrganization": {
+    "reference": "Organization/1456e8d6-5bb9-41cc-abbe-1ff283da3c0f"
+  }
+}
