@@ -4,6 +4,7 @@ import au.csiro.fhir.utils.Streams;
 import au.csiro.fhir.validation.ValidationConfig;
 import au.csiro.fhir.validation.ValidationResult;
 import au.csiro.fhir.validation.ValidationService;
+import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
@@ -28,6 +29,16 @@ public class ValidateApp implements Runnable {
     @CommandLine.Parameters(index = "1", description = "Output file.")
     private String outputFile;
 
+    @CommandLine.Option(names = {"-v", "--fhir-version"}, description = "FHIR version.", defaultValue = ValidationConfig.DEFAULT_VERSION)
+    String fhirVersion = ValidationConfig.DEFAULT_VERSION;
+
+    @CommandLine.Option(names = {"-i", "--ig"}, description = "Implementation guide(s).", arity = "0..*")
+    private List<String> igs = List.of();
+
+    @CommandLine.Option(names = {"-l", "--log-progress"}, description = "Log progress.", defaultValue = "false")
+    private boolean logProgress = false;
+
+
     @Value
     public static class ResourceWithIssues implements Serializable {
         @Nonnull
@@ -41,10 +52,11 @@ public class ValidateApp implements Runnable {
         }
     }
 
+    @AllArgsConstructor
     static class Validator implements Serializable {
 
         @Nonnull
-        private final ValidationConfig config = ValidationConfig.defaultConfig();
+        private final ValidationConfig config;
 
         @Nonnull
         private Iterator<ResourceWithIssues> validatePartition(@Nonnull final Iterator<String> input) {
@@ -62,7 +74,12 @@ public class ValidateApp implements Runnable {
                 .appName("Java Spark SQL basic example")
                 .getOrCreate();
         sparkSession.sparkContext().setLogLevel("WARN");
-        final Validator validator = new Validator();
+
+        final ValidationConfig config = ValidationConfig.builder()
+                .igs(igs)
+                .showProgress(logProgress).build();
+        System.out.println("Validation config: " + config);
+        final Validator validator = new Validator(config);
         System.out.println("Validating: " + inputFile + " and writing to: " + outputFile);
         Dataset<String> ndjsonDf = sparkSession.read().textFile(inputFile);
         Dataset<ResourceWithIssues> result = ndjsonDf.mapPartitions(validator::validatePartition, Encoders.bean(ResourceWithIssues.class));

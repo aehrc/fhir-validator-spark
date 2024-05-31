@@ -25,12 +25,14 @@ public class ValidationService {
 
     private static final Map<ValidationConfig, ValidationService> INSTANCES = new HashMap<>();
 
-    private static final ThreadLocal<ValidationEngine>  ENGINE = new ThreadLocal<>();
+    private static final ThreadLocal<ValidationEngine> ENGINE = new ThreadLocal<>();
 
     private final ValidationEngine validationEngine;
+    private final boolean showProgress;
 
-    public ValidationService(@Nonnull final ValidationEngine validationEngine) {
+    public ValidationService(@Nonnull final ValidationEngine validationEngine, boolean showProgress) {
         this.validationEngine = validationEngine;
+        this.showProgress = showProgress;
     }
 
     // HACK: this is a hack to access the protected method messagesToOutcome
@@ -49,7 +51,7 @@ public class ValidationService {
             List<ValidationMessage> messages = new ArrayList<>();
             InstanceValidator validator = validationEngine.getValidator(format);
             // customize the instance validator
-            validator.setLogProgress(false);
+            validator.setLogProgress(showProgress);
             validator.validate(null, messages, new ByteArrayInputStream(data), format, Collections.emptyList());
             return ValidationResult.fromValidationMessages(messages);
         } catch (final IOException e) {
@@ -61,12 +63,12 @@ public class ValidationService {
     @SneakyThrows
     public static ValidationService getOrCreate(@Nonnull final ValidationConfig config) {
         if (ENGINE.get() != null) {
-            return new ValidationService(ENGINE.get());
+            return new ValidationService(ENGINE.get(), config.isShowProgress());
         }
 
         synchronized (INSTANCES) {
             ENGINE.set(new ValidationEngine(INSTANCES.computeIfAbsent(config, ValidationService::create).validationEngine));
-            return new ValidationService(ENGINE.get());
+            return new ValidationService(ENGINE.get(), config.isShowProgress());
         }
     }
 
@@ -75,15 +77,17 @@ public class ValidationService {
     private static ValidationService create(@Nonnull final ValidationConfig config) {
         final ValidationEngine validationEngine = new ValidationEngine.ValidationEngineBuilder()
                 .withCanRunWithoutTerminologyServer(true)
-                .withVersion("4.0")
+                .withVersion(config.getVersion())
                 .withUserAgent(TestConstants.USER_AGENT)
                 .fromSource("hl7.fhir.r4.core#4.0.1")
                 .setBestPracticeLevel(BestPracticeWarningLevel.Error)
                 .setLevel(ValidationLevel.ERRORS)
                 .setShowTimes(false)
                 .setDebug(false);
-
-        validationEngine.loadPackage("kindlab.fhir.mimic#dev", null);
-        return new ValidationService(validationEngine);
+        for (final String ig : config.getIgs()) {
+            validationEngine.loadPackage(ig, null);
+        }
+        System.out.println("  Package Summary: "+ validationEngine.getContext().loadedPackageSummary());
+        return new ValidationService(validationEngine, config.isShowProgress());
     }
 }

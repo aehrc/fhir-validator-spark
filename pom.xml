@@ -136,10 +136,10 @@
                             </transformers>
                             <relocations>
                                 <relocation>
-                                    <pattern>com/</pattern>
-                                    <shadedPattern>${shaded.dependency.prefix}.com.</shadedPattern>
+                                    <pattern>org/</pattern>
+                                    <shadedPattern>${shaded.dependency.prefix}.org.</shadedPattern>
                                     <includes>
-                                        <include>com/github/benmanes/caffeine/**</include>
+                                        <include>org/apache/commons/compress/**</include>
                                     </includes>
                                 </relocation>
                                 <relocation>
@@ -147,9 +147,8 @@
                                     <shadedPattern>${shaded.dependency.prefix}.com.</shadedPattern>
                                     <includes>
                                         <include>com/fasterxml/jackson/**</include>
-                                    </includes>
-                                    <includes>
                                         <include>com/google/gson/**</include>
+                                        <include>com/github/benmanes/caffeine/**</include>
                                     </includes>
                                 </relocation>
                             </relocations>
