@@ -74,6 +74,7 @@ public class ValidateApp implements Runnable {
     }
 
     public void run() {
+        long startTime = System.currentTimeMillis();
         System.out.println("FHIR Validator: " + this);
         final SparkSession sparkSession = SparkSession.builder()
                 .appName("FhirValidator")
@@ -90,6 +91,8 @@ public class ValidateApp implements Runnable {
         Dataset<String> ndjsonDf = sparkSession.read().textFile(inputFile);
         Dataset<ResourceWithIssues> result = ndjsonDf.mapPartitions(validator::validatePartition, Encoders.bean(ResourceWithIssues.class));
         result.toDF().write().mode(SaveMode.Overwrite).parquet(outputFile);
+        long endTime = System.currentTimeMillis();
+        System.out.printf("Elapsed time: %.3f s", (endTime - startTime) / 1000.0);
     }
 
     public static void main(String[] args) {
