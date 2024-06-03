@@ -11,7 +11,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class ValidationServiceTest {
 
     private final ValidationConfig config = ValidationConfig.builder()
-            .ig("kindlab.fhir.mimic#dev").showProgress(true).build();
+            //.ig("kindlab.fhir.mimic#dev")
+            .ig("fhir/packages/kindlab.fhir.mimic/package.tgz")
+            .showProgress(true).build();
 
     @Test
     void testInvalidJson() {
