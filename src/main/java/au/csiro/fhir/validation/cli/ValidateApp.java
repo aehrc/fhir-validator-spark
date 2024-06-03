@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 
-@CommandLine.Command(name = "validate", mixinStandardHelpOptions = true, version = "validate 1.0",
+@CommandLine.Command(name = "validate-fhir", mixinStandardHelpOptions = true, version = "validate 1.0",
         description = "Validate FHIR resources")
 @ToString
 public class ValidateApp implements Runnable {
