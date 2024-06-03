@@ -5,6 +5,7 @@ import au.csiro.fhir.validation.ValidationConfig;
 import au.csiro.fhir.validation.ValidationResult;
 import au.csiro.fhir.validation.ValidationService;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 import lombok.Value;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
@@ -20,24 +21,27 @@ import java.util.Iterator;
 import java.util.List;
 
 @CommandLine.Command(name = "validate", mixinStandardHelpOptions = true, version = "validate 1.0",
-        description = "Validate FHIR resources.")
+        description = "Validate FHIR resources")
+@ToString
 public class ValidateApp implements Runnable {
 
     @CommandLine.Parameters(index = "0", description = "Input file.")
-    private String inputFile;
+    String inputFile;
 
     @CommandLine.Parameters(index = "1", description = "Output file.")
-    private String outputFile;
+    String outputFile;
 
     @CommandLine.Option(names = {"-v", "--fhir-version"}, description = "FHIR version.", defaultValue = ValidationConfig.DEFAULT_VERSION)
     String fhirVersion = ValidationConfig.DEFAULT_VERSION;
 
     @CommandLine.Option(names = {"-i", "--ig"}, description = "Implementation guide(s).", arity = "0..*")
-    private List<String> igs = List.of();
+    List<String> igs = List.of();
 
     @CommandLine.Option(names = {"-l", "--log-progress"}, description = "Log progress.", defaultValue = "false")
-    private boolean logProgress = false;
+    boolean logProgress = false;
 
+    @CommandLine.Option(names = {"-d", "--log-level"}, description = "Spark log level", defaultValue = "")
+    String debugLevel = "";
 
     @Value
     public static class ResourceWithIssues implements Serializable {
@@ -70,11 +74,13 @@ public class ValidateApp implements Runnable {
     }
 
     public void run() {
+        System.out.println("FHIR Validator: " + this);
         final SparkSession sparkSession = SparkSession.builder()
-                .appName("Java Spark SQL basic example")
+                .appName("FhirValidator")
                 .getOrCreate();
-        sparkSession.sparkContext().setLogLevel("WARN");
-
+        if (!debugLevel.isEmpty()) {
+            sparkSession.sparkContext().setLogLevel(debugLevel);
+        }
         final ValidationConfig config = ValidationConfig.builder()
                 .igs(igs)
                 .showProgress(logProgress).build();
@@ -87,6 +93,6 @@ public class ValidateApp implements Runnable {
     }
 
     public static void main(String[] args) {
-        CommandLine.run(new ValidateApp(), args);
+        System.exit(new CommandLine(new ValidateApp()).execute(args));
     }
 }
