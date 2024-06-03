@@ -93,6 +93,6 @@ public class ValidateApp implements Runnable {
     }
 
     public static void main(String[] args) {
-        System.exit(new CommandLine(new ValidateApp()).execute(args));
+        new CommandLine(new ValidateApp()).execute(args);
     }
 }
