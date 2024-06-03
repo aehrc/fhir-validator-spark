@@ -130,7 +130,8 @@
                                 </filter>
                             </filters>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>au.csiro.fhir.validation.cli.ValidateApp</mainClass>
                                 </transformer>
                             </transformers>
@@ -169,4 +170,83 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <profiles>
+        <profile>
+            <id>dist</id>
+            <build>
+                <!-- use assembly plugin to build the zip file with the distribution -->
+                <!-- include the shaded jar, bin scrips, data, and fhir files -->
+                <!-- inline the assembly descriptor -->
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <version>3.7.1</version>
+                        <executions>
+                            <execution>
+                                <id>make-assembly</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <configuration>
+                                    <inlineDescriptors>
+                                        <assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
+                                                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                                  xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+                                            <id>dist</id>
+                                            <formats>
+                                                <format>zip</format>
+                                            </formats>
+                                            <includeBaseDirectory>false</includeBaseDirectory>
+                                            <fileSets>
+                                                <fileSet>
+                                                    <directory>${project.build.directory}</directory>
+                                                    <outputDirectory>/</outputDirectory>
+                                                    <includes>
+                                                        <include>*-all.jar</include>
+                                                    </includes>
+                                                </fileSet>
+                                                <fileSet>
+                                                    <directory>bin</directory>
+                                                    <outputDirectory>/bin</outputDirectory>
+                                                    <includes>
+                                                        <include>*</include>
+                                                    </includes>
+                                                </fileSet>
+                                                <fileSet>
+                                                    <directory>data</directory>
+                                                    <outputDirectory>/data</outputDirectory>
+                                                    <includes>
+                                                        <include>**/*</include>
+                                                    </includes>
+                                                </fileSet>
+                                                <fileSet>
+                                                    <directory>fhir</directory>
+                                                    <outputDirectory>/fhir</outputDirectory>
+                                                    <includes>
+                                                        <include>**/*</include>
+                                                    </includes>
+                                                </fileSet>
+                                            </fileSets>
+                                            <!-- uncomment to check the sizes of the dependencies -->
+                                            <!--dependencySets>
+                                                <dependencySet>
+                                                    <outputDirectory>/jars</outputDirectory>
+                                                    <useProjectArtifact>false</useProjectArtifact>
+                                                    <unpack>false</unpack>
+                                                    <scope>runtime</scope>
+                                                </dependencySet>
+                                            </dependencySets-->
+                                        </assembly>
+                                    </inlineDescriptors>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

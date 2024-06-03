@@ -10,3 +10,13 @@
 - [ ] Reorganize project and add to the github repo for 'fhir--mimic'
 - [X] Work on reports from the validation results
 - [ ] Add version detection for the validator from the IGs and compare the loading process to Validator CLI.
+
+
+
+### Ideas
+
+- Add highlighting or errors to the validation results. (e.g. red for errors, yellow for warnings, green for info). 
+- Automatic translation - make LMM to produce the prompt based on the examples.
+- Develop a generalised map(reduce) python for Slurm Array Jobs.
+
+[//]: # (TODO: Someting)
