@@ -40,8 +40,8 @@ public class ValidateApp implements Runnable {
     @CommandLine.Option(names = {"-l", "--log-progress"}, description = "Log progress.", defaultValue = "false")
     boolean logProgress = false;
 
-    @CommandLine.Option(names = {"-d", "--log-level"}, description = "Spark log level", defaultValue = "")
-    String debugLevel = "";
+    @CommandLine.Option(names = {"-d", "--log-level"}, description = "Spark log level", defaultValue = "WARN")
+    String debugLevel = "WARN";
 
     @Value
     public static class ResourceWithIssues implements Serializable {
