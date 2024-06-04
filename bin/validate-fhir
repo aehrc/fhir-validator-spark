@@ -1,4 +1,4 @@
 #!/bin/sh
 ROOT_DIR="$(dirname $0)/.."
 spark-submit \
-    $ROOT_DIR/target/spark-validator-1.0-SNAPSHOT-all.jar "@$"
+    $ROOT_DIR/target/spark-validator-1.0-SNAPSHOT-all.jar "$@"
