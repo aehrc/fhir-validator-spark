@@ -182,7 +182,7 @@ def validation_report(input_dir, output_dir, min_level):
     for file_name in file_names:
         click.echo(f"Generating report for: {file_name}")
         issues_tbl = duckdb.sql(REPORT_QUERY.format(file_name=file_name, min_level_order=min_level))
-        issues_headings = issues_tbl.columns
+        issues_headings = issues_tbl.columns[0:6]
         issues = issues_tbl.fetchall()
         template = jinja2.Template(REPORT_TEMPLATE, autoescape=True, trim_blocks=True, lstrip_blocks=True)
         file_report = os.path.join(output_dir, f'{file_name}.html')
