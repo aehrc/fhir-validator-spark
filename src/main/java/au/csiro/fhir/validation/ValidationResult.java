@@ -158,7 +158,18 @@ public class ValidationResult implements Serializable {
                 .collect(Collectors.toUnmodifiableList()));
     }
 
-    public static ValidationResult fromException(Exception e) {
-        throw new UnsupportedOperationException("Not implemented");
+    @Nonnull
+    public static ValidationResult fromException(@Nonnull final Exception ex) {
+        return new ValidationResult(List.of(Issue.builder()
+                .level(IssueLevel.FATAL.toCode())
+                .type(ex.getClass().getSimpleName())
+                .message(ex.getMessage())
+                .build()));
+    }
+
+
+    @Nonnull
+    public static ValidationResult of(@Nonnull final Issue... issues) {
+        return new ValidationResult(List.of(issues));
     }
 }

@@ -5,6 +5,7 @@ import lombok.Singular;
 import lombok.Value;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.util.List;
 
@@ -13,7 +14,7 @@ import java.util.List;
 public class ValidationConfig implements Serializable {
 
     // default version is R4
-    public static final String DEFAULT_VERSION = "4.0";
+    public static final String DEFAULT_VERSION = "4.0.1";
 
     @Nonnull
     @Builder.Default
@@ -25,6 +26,10 @@ public class ValidationConfig implements Serializable {
 
     @Builder.Default
     boolean showProgress = false;
+
+    @Nullable
+    @Builder.Default
+    String txSever = null;
 
     public static ValidationConfig defaultConfig() {
         return ValidationConfig.builder()

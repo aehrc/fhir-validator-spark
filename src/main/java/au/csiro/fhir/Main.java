@@ -1,5 +1,6 @@
 package au.csiro.fhir;
 
+import ca.uhn.fhir.context.FhirContext;
 import org.hl7.fhir.r5.formats.FormatUtilities;
 import org.hl7.fhir.r5.formats.ParserBase;
 import org.hl7.fhir.r5.elementmodel.JsonParser;
@@ -43,6 +44,5 @@ public class Main {
 
         validator.validate(null, errors, res);
         System.out.println(errors);
-
     }
 }

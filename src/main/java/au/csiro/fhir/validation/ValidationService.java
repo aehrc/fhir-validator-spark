@@ -5,6 +5,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r5.elementmodel.Manager;
 import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
+import org.hl7.fhir.utilities.FhirPublication;
 import org.hl7.fhir.utilities.tests.TestConstants;
 import org.hl7.fhir.utilities.validation.ValidationMessage;
 import org.hl7.fhir.validation.ValidationEngine;
@@ -15,6 +16,8 @@ import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.*;
+
+import static java.util.Objects.nonNull;
 
 @Slf4j
 public class ValidationService {
@@ -67,7 +70,13 @@ public class ValidationService {
     @SneakyThrows
     private static ValidationService create(@Nonnull final ValidationConfig config) {
         log.debug("Creating new ValidationEngine prototype for config: {}", config);
-        final ValidationEngine validationEngine = new ValidationEngine.ValidationEngineBuilder()
+
+        ValidationEngine.ValidationEngineBuilder builder = nonNull(config.getTxSever())
+                ? new ValidationEngine.ValidationEngineBuilder().withTxServer(config.getTxSever(),
+                null, FhirPublication.fromCode(config.getVersion()), true)
+                : new ValidationEngine.ValidationEngineBuilder().withNoTerminologyServer();
+
+        final ValidationEngine validationEngine = builder
                 .withCanRunWithoutTerminologyServer(true)
                 .withVersion(config.getVersion())
                 .withUserAgent(TestConstants.USER_AGENT)
