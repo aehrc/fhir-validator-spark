@@ -10,9 +10,14 @@ import lombok.AllArgsConstructor;
 
 import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class HapiValidationService {
+
+
+    private static final ThreadLocal<Map<FhirVersionEnum, FhirContext>> LOCAL = ThreadLocal.withInitial(() -> new HashMap<>());
 
     private final FhirContext fhirContext;
 
@@ -29,7 +34,7 @@ public class HapiValidationService {
 
     @Nonnull
     public static HapiValidationService getOrCreate(@Nonnull final FhirVersionEnum version) {
-        return new HapiValidationService(FhirContext.forCached(version));
+        return new HapiValidationService(LOCAL.get().computeIfAbsent(version, v -> new FhirContext(v)));
     }
 
 }
