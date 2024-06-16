@@ -46,6 +46,11 @@ public class ValidateHapiApp implements Runnable {
         @Nullable
         List<ValidationResult.Issue> issues;
 
+
+        boolean hasIssues() {
+            return issues != null;
+        }
+
         @Nonnull
         static ResourceWithIssues of(@Nonnull final String resource, @Nonnull final ValidationResult validationResult) {
             return new ResourceWithIssues(resource, validationResult.getIssues().isEmpty() ? null : validationResult.getIssues());
@@ -63,6 +68,7 @@ public class ValidateHapiApp implements Runnable {
             final HapiValidationService validationService = HapiValidationService.getOrCreate(fhirVersionEnum);
             return Streams.streamOf(input)
                     .map(s -> ResourceWithIssues.of(s, validationService.validateJson(s.getBytes(StandardCharsets.UTF_8))))
+                    .filter(ResourceWithIssues::hasIssues)
                     .iterator();
         }
     }
