@@ -4,13 +4,8 @@ import au.csiro.fhir.utils.Streams;
 import au.csiro.fhir.validation.ValidationConfig;
 import au.csiro.fhir.validation.ValidationResult;
 import au.csiro.fhir.validation.ValidationService;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
-import lombok.Value;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.SparkSession;
+import lombok.*;
+import org.apache.spark.sql.*;
 import picocli.CommandLine;
 
 import javax.annotation.Nonnull;
@@ -23,7 +18,7 @@ import java.util.List;
 @CommandLine.Command(name = "validate-fhir", mixinStandardHelpOptions = true, version = "validate 1.0",
         description = "Validate FHIR resources")
 @ToString
-public class ValidateApp implements Runnable {
+public class ValidateManyApp implements Runnable {
 
     @CommandLine.Parameters(index = "0", description = "Input file.")
     String inputFile;
@@ -43,10 +38,23 @@ public class ValidateApp implements Runnable {
     @CommandLine.Option(names = {"-d", "--log-level"}, description = "Spark log level", defaultValue = "WARN")
     String debugLevel = "WARN";
 
+    @Data
+    @NoArgsConstructor
+    public static class ValueWithFile implements Serializable {
+        @Nonnull
+        String value;
+        @Nonnull
+        String filename;
+    }
+
     @Value
     public static class ResourceWithIssues implements Serializable {
         @Nonnull
         String resource;
+
+        @Nonnull
+        String filename;
+
         @Nullable
         List<ValidationResult.Issue> issues;
 
@@ -56,8 +64,8 @@ public class ValidateApp implements Runnable {
         }
 
         @Nonnull
-        static ResourceWithIssues of(@Nonnull final String resource, @Nonnull final ValidationResult validationResult) {
-            return new ResourceWithIssues(resource, validationResult.getIssues().isEmpty() ? null : validationResult.getIssues());
+        static ResourceWithIssues of(@Nonnull final String resource, @Nonnull final String filename, @Nonnull final ValidationResult validationResult) {
+            return new ResourceWithIssues(resource, filename, validationResult.getIssues().isEmpty() ? null : validationResult.getIssues());
         }
     }
 
@@ -68,10 +76,11 @@ public class ValidateApp implements Runnable {
         private final ValidationConfig config;
 
         @Nonnull
-        private Iterator<ResourceWithIssues> validatePartition(@Nonnull final Iterator<String> input) {
+        private Iterator<ResourceWithIssues> validatePartition(@Nonnull final Iterator<ValueWithFile> input) {
             final ValidationService validationService = ValidationService.getOrCreate(config);
             return Streams.streamOf(input)
-                    .map(s -> ResourceWithIssues.of(s, validationService.validateJson(s.getBytes(StandardCharsets.UTF_8))))
+                    .map(s -> ResourceWithIssues.of(s.getValue(), s.getFilename(),
+                            validationService.validateJson(s.getValue().getBytes(StandardCharsets.UTF_8))))
                     .filter(ResourceWithIssues::hasIssues)
                     .iterator();
         }
@@ -92,7 +101,7 @@ public class ValidateApp implements Runnable {
         System.out.println("Validation config: " + config);
         final Validator validator = new Validator(config);
         System.out.println("Validating: " + inputFile + " and writing to: " + outputFile);
-        Dataset<String> ndjsonDf = sparkSession.read().textFile(inputFile);
+        Dataset<ValueWithFile> ndjsonDf = sparkSession.read().text(inputFile).as(Encoders.bean(ValueWithFile.class));
         Dataset<ResourceWithIssues> result = ndjsonDf.mapPartitions(validator::validatePartition, Encoders.bean(ResourceWithIssues.class));
         result.toDF().write().mode(SaveMode.Overwrite).parquet(outputFile);
         long endTime = System.currentTimeMillis();
@@ -100,6 +109,7 @@ public class ValidateApp implements Runnable {
     }
 
     public static void main(String[] args) {
-        new CommandLine(new ValidateApp()).execute(args);
+        //Dataset<Row> ndjsonDf = sparkSession.read().text("/Users/szu004/dev/mimic-vi-fhir/target/mimic4-demo-export-db").;
+        new CommandLine(new ValidateManyApp()).execute(args);
     }
 }
