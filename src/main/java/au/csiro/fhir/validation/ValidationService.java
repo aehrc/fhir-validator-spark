@@ -59,18 +59,17 @@ public class ValidationService {
             return new ValidationService(ENGINE.get(), config.isShowProgress());
         }
 
-        synchronized (INSTANCES) {
-            log.debug("Setting thread-local clone of ValidationEngine for config: {}", config);
-            ENGINE.set(new ValidationEngine(INSTANCES.computeIfAbsent(config, ValidationService::create).validationEngine));
-            return new ValidationService(ENGINE.get(), config.isShowProgress());
-        }
+        log.debug("Setting thread-local clone of ValidationEngine for config: {}", config);
+        ENGINE.set(createEngine(config));
+        return new ValidationService(ENGINE.get(), config.isShowProgress());
     }
 
     @Nonnull
     @SneakyThrows
-    private static ValidationService create(@Nonnull final ValidationConfig config) {
-        log.debug("Creating new ValidationEngine prototype for config: {}", config);
-
+    // synchronize here - this increases the init time but seems the only way
+    // for not to get around all the synchronization issues
+    public static synchronized ValidationEngine createEngine(@Nonnull final ValidationConfig config) {
+        log.debug("Creating new ValidationEngine for config: {}", config);
         ValidationEngine.ValidationEngineBuilder builder = nonNull(config.getTxSever())
                 ? new ValidationEngine.ValidationEngineBuilder().withTxServer(config.getTxSever(),
                 null, FhirPublication.fromCode(config.getVersion()), true)
@@ -90,7 +89,8 @@ public class ValidationService {
             validationEngine.loadPackage(ig, null);
         }
         // TODO: change this to logger info
-        System.out.println("Package Summary: " + validationEngine.getContext().loadedPackageSummary());
-        return new ValidationService(validationEngine, config.isShowProgress());
+        log.info("Package Summary: {}", validationEngine.getContext().loadedPackageSummary());
+        return validationEngine;
     }
+
 }
