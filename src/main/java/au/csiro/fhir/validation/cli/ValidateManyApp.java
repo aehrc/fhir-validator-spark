@@ -6,6 +6,7 @@ import au.csiro.fhir.validation.ValidationResult;
 import au.csiro.fhir.validation.ValidationService;
 import lombok.*;
 import org.apache.spark.sql.*;
+import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
 import picocli.CommandLine;
 
 import javax.annotation.Nonnull;
@@ -32,11 +33,18 @@ public class ValidateManyApp implements Runnable {
     @CommandLine.Option(names = {"-i", "--ig"}, description = "Implementation guide(s).", arity = "0..*")
     List<String> igs = List.of();
 
-    @CommandLine.Option(names = {"-l", "--log-progress"}, description = "Log progress.", defaultValue = "false")
+    @CommandLine.Option(names = {"-p", "--log-progress"}, description = "Log progress.", defaultValue = "false")
     boolean logProgress = false;
 
     @CommandLine.Option(names = {"-d", "--log-level"}, description = "Spark log level", defaultValue = "WARN")
     String debugLevel = "WARN";
+
+    @CommandLine.Option(names = {"-l", "--language"}, description = "Language to use")
+    String language = null;
+
+    @CommandLine.Option(names = {"-tx", "--tx-server"}, description = "Tx server to use")
+    String txServer = null;
+
 
     @Data
     @NoArgsConstructor
@@ -96,8 +104,14 @@ public class ValidateManyApp implements Runnable {
             sparkSession.sparkContext().setLogLevel(debugLevel);
         }
         final ValidationConfig config = ValidationConfig.builder()
+                .txSever(txServer)
+                .language(language)
                 .igs(igs)
-                .showProgress(logProgress).build();
+                .showProgress(logProgress)
+                // hardcoded for no
+                .bestPracticeLevel(BestPracticeWarningLevel.Warning)
+                .displayMismatchAsWarning(true)
+                .build();
         System.out.println("Validation config: " + config);
         final Validator validator = new Validator(config);
         System.out.println("Validating: " + inputFile + " and writing to: " + outputFile);

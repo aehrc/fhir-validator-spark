@@ -43,5 +43,4 @@ class ValidationServiceTest {
         System.out.println(result);
     }
 
-
 }

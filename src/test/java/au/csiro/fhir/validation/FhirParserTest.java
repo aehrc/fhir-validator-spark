@@ -4,13 +4,7 @@ import au.csiro.fhir.validation.hapi.CollectorErrorHandler;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.DataFormatException;
 import ca.uhn.fhir.parser.JsonParser;
-import ca.uhn.fhir.parser.LenientErrorHandler;
-import ca.uhn.fhir.parser.StrictErrorHandler;
 import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.hl7.fhir.r4.elementmodel.Manager;
-import org.hl7.fhir.r4.formats.FormatUtilities;
-import org.hl7.fhir.r4.formats.ParserBase;
-import org.hl7.fhir.r4.model.Resource;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

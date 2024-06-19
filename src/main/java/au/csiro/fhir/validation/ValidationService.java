@@ -4,12 +4,10 @@ package au.csiro.fhir.validation;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r5.elementmodel.Manager;
-import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
 import org.hl7.fhir.utilities.FhirPublication;
 import org.hl7.fhir.utilities.tests.TestConstants;
 import org.hl7.fhir.utilities.validation.ValidationMessage;
 import org.hl7.fhir.validation.ValidationEngine;
-import org.hl7.fhir.validation.cli.utils.ValidationLevel;
 import org.hl7.fhir.validation.instance.InstanceValidator;
 
 import javax.annotation.Nonnull;
@@ -81,8 +79,10 @@ public class ValidationService {
                 .withUserAgent(TestConstants.USER_AGENT)
                 // TODO: this need to be either a parameter or somehow inferred
                 .fromSource("hl7.fhir.r4.core#4.0.1")
-                .setBestPracticeLevel(BestPracticeWarningLevel.Error)
-                .setLevel(ValidationLevel.ERRORS)
+                .setLanguage(config.getLanguage())
+                .setBestPracticeLevel(config.getBestPracticeLevel())
+                .setLevel(config.getValidationLevel())
+                .setDisplayWarnings(config.isDisplayMismatchAsWarning())
                 .setShowTimes(false)
                 .setDebug(false);
         for (final String ig : config.getIgs()) {

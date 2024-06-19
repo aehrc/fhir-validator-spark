@@ -1,0 +1,43 @@
+{
+  "id": "128e5d06-23ff-5d6e-8162-f1395c1aa020",
+  "code": {
+    "coding": [
+      {
+        "code": "8661-1",
+        "system": "http://loinc.org",
+        "display": "Chief complaint - Reported"
+      }
+    ]
+  },
+  "meta": {
+    "profile": [
+      "http://mimic.mit.edu/fhir/mimic/StructureDefinition/mimic-observation-ed"
+    ]
+  },
+  "partOf": [
+    {
+      "reference": "Procedure/7dbb9966-fe29-5a65-ad24-aa0975374f39"
+    }
+  ],
+  "status": "final",
+  "subject": {
+    "reference": "Patient/0a8eebfd-a352-522e-89f0-1d4a13abdebc"
+  },
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "survey",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+          "display": "Survey"
+        }
+      ]
+    }
+  ],
+  "encounter": {
+    "reference": "Encounter/4a10f8ad-ff05-54c5-a41d-b7af1ee1acc0"
+  },
+  "valueString": "Abdominal distention, Abd pain, LETHAGIC",
+  "resourceType": "Observation",
+  "effectiveDateTime": "2180-07-23T05:54:00+10:00"
+}

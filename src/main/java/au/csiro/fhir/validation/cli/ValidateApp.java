@@ -37,7 +37,7 @@ public class ValidateApp implements Runnable {
     @CommandLine.Option(names = {"-i", "--ig"}, description = "Implementation guide(s).", arity = "0..*")
     List<String> igs = List.of();
 
-    @CommandLine.Option(names = {"-l", "--log-progress"}, description = "Log progress.", defaultValue = "false")
+    @CommandLine.Option(names = {"-p", "--log-progress"}, description = "Log progress.", defaultValue = "false")
     boolean logProgress = false;
 
     @CommandLine.Option(names = {"-d", "--log-level"}, description = "Spark log level", defaultValue = "WARN")

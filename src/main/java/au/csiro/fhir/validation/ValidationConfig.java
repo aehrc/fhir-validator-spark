@@ -3,6 +3,8 @@ package au.csiro.fhir.validation;
 import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
+import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
+import org.hl7.fhir.validation.cli.utils.ValidationLevel;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,7 +31,27 @@ public class ValidationConfig implements Serializable {
 
     @Nullable
     @Builder.Default
+    String language = null;
+
+    @Nullable
+    @Builder.Default
     String txSever = null;
+
+    /**
+     * If true, display mismatches in codings are reported as warnings instead of errors
+     */
+    @Builder.Default
+    boolean displayMismatchAsWarning = false;
+
+
+    @Nonnull
+    @Builder.Default
+    BestPracticeWarningLevel bestPracticeLevel = BestPracticeWarningLevel.Warning;
+
+    @Nonnull
+    @Builder.Default
+    ValidationLevel validationLevel = ValidationLevel.HINTS;
+
 
     public static ValidationConfig defaultConfig() {
         return ValidationConfig.builder()
