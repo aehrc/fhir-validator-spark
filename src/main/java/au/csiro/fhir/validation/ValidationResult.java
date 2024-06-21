@@ -89,29 +89,6 @@ public class ValidationResult implements Serializable {
         Integer col = null;
 
         @Nonnull
-        static Issue fromComponent(@Nonnull final OperationOutcome.OperationOutcomeIssueComponent component) {
-            final IssueBuilder builder = Issue.builder()
-                    .level(component.getSeverity().toCode())
-                    .type(component.getCode().toCode())
-                    .message(component.getDetails().getText());
-            if (component.hasExpression()) {
-                builder.location(component.getExpression().get(0).getValue());
-            }
-            component.getExtension().forEach(extension -> {
-                if (extension.getUrl().equals("http://hl7.org/fhir/StructureDefinition/operationoutcome-message-id")) {
-                    builder.messageId(extension.getValueCodeType().primitiveValue());
-                } else if (extension.getUrl().equals("http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-line")) {
-                    builder.line(extension.getValueIntegerType().getValue());
-                } else if (extension.getUrl().equals("http://hl7.org/fhir/StructureDefinition/operationoutcome-issue-col")) {
-                    builder.col(extension.getValueIntegerType().getValue());
-                }
-            });
-
-            return builder.build();
-        }
-
-
-        @Nonnull
         static Issue fromValidationMessage(@Nonnull final ValidationMessage message) {
             final IssueBuilder builder = Issue.builder()
                     .level(message.getLevel().toCode())
@@ -130,10 +107,8 @@ public class ValidationResult implements Serializable {
             if (message.getLocation() != null) {
                 builder.location(message.getLocation());
             }
-            if (message.getMessageId() != null) {
-                builder.messageId(message.getMessageId());
-            }
-
+            // Try to resolve message id
+            HL7MessageResolver.getMessageId(message.getMessage()).ifPresent(builder::messageId);
             return builder.build();
         }
     }
@@ -141,14 +116,6 @@ public class ValidationResult implements Serializable {
     @Nonnull
     List<Issue> issues;
 
-    @Nonnull
-    @SneakyThrows
-    public static ValidationResult fromOperationOutcome(@Nonnull final OperationOutcome validationOutcome) {
-        return new ValidationResult(validationOutcome.getIssue().stream()
-                .map(Issue::fromComponent)
-                .collect(Collectors.toUnmodifiableList()));
-
-    }
 
     @Nonnull
     @SneakyThrows

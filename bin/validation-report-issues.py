@@ -12,18 +12,19 @@ REPORT_QUERY = """
 SELECT
     issue.level AS level,
     issue.type AS type,
-    issue.message AS message,
+    ANY_VALUE(issue.message) AS message,
     count(*) AS issue_count,
     ANY_VALUE(resource) AS example,
     ANY_VALUE(issue.location) AS location,
     filename AS filename,
     ANY_VALUE(issue.col) AS col,
-    CASE WHEN level='information' THEN 1 WHEN level='warning' then 2 WHEN level='error' then 3 WHEN level='fatal' THEN 4 ELSE 0 END AS level_order
+    CASE WHEN level='information' THEN 1 WHEN level='warning' then 2 WHEN level='error' then 3 WHEN level='fatal' THEN 4 ELSE 0 END AS level_order,
+    issue.messageId AS message_id
 FROM (SELECT filename, resource, unnest(issues) AS issue FROM report_tbl)
 WHERE  level_order >= {min_level_order} {filter_clause}
-GROUP BY level, type, message, filename
+GROUP BY level, type, message_id, filename
 ORDER BY 
-    level_order DESC, type, message, filename, issue_count DESC
+    level_order DESC, type, message_id, message, filename, issue_count DESC
 """
 
 
@@ -75,6 +76,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
         <tr>
             <th>Level</th>
             <th>Type</th>
+            <th>MessageId</th>
             <th>Message</th>
             <th>Example</th>
             <th>Location</th>
@@ -85,6 +87,7 @@ REPORT_TEMPLATE = """<!DOCTYPE html>
             <tr>
                 <td>{{issue.level}}</td>
                 <td>{{issue.type}}</td>
+                <td>{{issue.message_id}}</td>
                 <td>{{issue.message}}</td>
                 <td>{{higlight(issue.example, issue.col)}}</td>
                 <td>{{issue.location}}</td>
