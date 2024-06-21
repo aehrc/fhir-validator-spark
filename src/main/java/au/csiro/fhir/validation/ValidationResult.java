@@ -1,12 +1,7 @@
 package au.csiro.fhir.validation;
 
 
-import lombok.Builder;
-import lombok.SneakyThrows;
-import lombok.Value;
-import org.hl7.fhir.exceptions.FHIRException;
-import org.hl7.fhir.r5.model.Configuration;
-import org.hl7.fhir.r5.model.OperationOutcome;
+import lombok.*;
 import org.hl7.fhir.utilities.validation.ValidationMessage;
 
 import javax.annotation.Nonnull;
@@ -15,7 +10,9 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Value
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ValidationResult implements Serializable {
 
     enum IssueLevel {
@@ -61,8 +58,10 @@ public class ValidationResult implements Serializable {
         }
     }
 
-    @Value
-    @Builder
+    @Data
+    @Builder(toBuilder = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Issue implements Serializable {
         @Nonnull
         String level;
