@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class HapiValidationServiceTest {
+class HapiHL7ValidationServiceTest {
 
     @Test
     void testJsonParsingError() {

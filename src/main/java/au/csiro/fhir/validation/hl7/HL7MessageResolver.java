@@ -1,4 +1,4 @@
-package au.csiro.fhir.validation;
+package au.csiro.fhir.validation.hl7;
 
 import lombok.SneakyThrows;
 
@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 public class HL7MessageResolver {
 
     // THESE have exact duplicate messages
-    private static Set<String> EXCLUDE = Set.of(
+    private static final Set<String> EXCLUDE = Set.of(
             "BUNDLE_BUNDLE_ENTRY_NOTFOUND_FRAGMENT",
             "VALIDATION_VAL_PROFILE_MAXIMUM_OTHER",
             "VALIDATION_VAL_PROFILE_MINIMUM_OTHER");

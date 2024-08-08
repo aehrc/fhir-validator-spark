@@ -1,9 +1,8 @@
 package au.csiro.fhir.validation.cli;
 
 import au.csiro.fhir.utils.Streams;
-import au.csiro.fhir.validation.ValidationConfig;
+import au.csiro.fhir.validation.hl7.HL7ValidationConfig;
 import au.csiro.fhir.validation.ValidationResult;
-import au.csiro.fhir.validation.ValidationService;
 import au.csiro.fhir.validation.hapi.HapiValidationService;
 import ca.uhn.fhir.context.FhirVersionEnum;
 import lombok.AllArgsConstructor;
@@ -33,8 +32,8 @@ public class ValidateHapiApp implements Runnable {
     @CommandLine.Parameters(index = "1", description = "Output file.")
     String outputFile;
 
-    @CommandLine.Option(names = {"-v", "--fhir-version"}, description = "FHIR version.", defaultValue = ValidationConfig.DEFAULT_VERSION)
-    String fhirVersion = ValidationConfig.DEFAULT_VERSION;
+    @CommandLine.Option(names = {"-v", "--fhir-version"}, description = "FHIR version.", defaultValue = HL7ValidationConfig.DEFAULT_VERSION)
+    String fhirVersion = HL7ValidationConfig.DEFAULT_VERSION;
 
     @CommandLine.Option(names = {"-d", "--log-level"}, description = "Spark log level", defaultValue = "WARN")
     String debugLevel = "WARN";

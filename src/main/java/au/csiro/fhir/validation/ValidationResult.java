@@ -1,14 +1,15 @@
 package au.csiro.fhir.validation;
 
 
-import lombok.*;
-import org.hl7.fhir.utilities.validation.ValidationMessage;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -24,7 +25,7 @@ public class ValidationResult implements Serializable {
 
 
         public IssueLevel fromCode(String codeString) {
-            if (codeString == null || "".equals(codeString))
+            if (codeString == null || codeString.isEmpty())
                 return null;
             if ("fatal".equals(codeString))
                 return FATAL;
@@ -86,43 +87,10 @@ public class ValidationResult implements Serializable {
         @Nullable
         @Builder.Default
         Integer col = null;
-
-        @Nonnull
-        static Issue fromValidationMessage(@Nonnull final ValidationMessage message) {
-            final IssueBuilder builder = Issue.builder()
-                    .level(message.getLevel().toCode())
-                    .type(message.getType().toCode())
-                    .message(message.getMessage())
-                    .location(message.getLocation())
-                    .messageId(message.getMessageId());
-
-            // pass through line/col if they're present
-            if (message.getLine() >= 0) {
-                builder.line(message.getLine());
-            }
-            if (message.getCol() >= 0) {
-                builder.col(message.getCol());
-            }
-            if (message.getLocation() != null) {
-                builder.location(message.getLocation());
-            }
-            // Try to resolve message id
-            HL7MessageResolver.getMessageId(message.getMessage()).ifPresent(builder::messageId);
-            return builder.build();
-        }
     }
 
     @Nonnull
     List<Issue> issues;
-
-
-    @Nonnull
-    @SneakyThrows
-    public static ValidationResult fromValidationMessages(@Nonnull final List<ValidationMessage> validationMessages) {
-        return new ValidationResult(validationMessages.stream()
-                .map(Issue::fromValidationMessage)
-                .collect(Collectors.toUnmodifiableList()));
-    }
 
     @Nonnull
     public static ValidationResult fromException(@Nonnull final Exception ex) {

@@ -1,28 +1,23 @@
 package au.csiro.fhir.validation.cli;
 
 import au.csiro.fhir.utils.Streams;
-import au.csiro.fhir.validation.HL7MessageResolver;
-import au.csiro.fhir.validation.ValidationConfig;
+import au.csiro.fhir.validation.hl7.HL7MessageResolver;
 import au.csiro.fhir.validation.ValidationResult;
-import au.csiro.fhir.validation.ValidationService;
 import lombok.*;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
-import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
 import picocli.CommandLine;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNull;
 
 /**

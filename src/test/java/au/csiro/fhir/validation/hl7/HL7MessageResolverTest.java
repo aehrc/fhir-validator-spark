@@ -1,4 +1,4 @@
-package au.csiro.fhir.validation;
+package au.csiro.fhir.validation.hl7;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,7 +28,7 @@ public class HL7MessageResolverTest {
     @MethodSource("provideMessagesWithIds")
     void testResolveMessage(String message, String id) {
         // Example usage
-        String resolvedId = HL7MessageResolver.getMessageId(message).get();
+        String resolvedId = HL7MessageResolver.getMessageId(message).orElseThrow();
         assertEquals(id, resolvedId);
     }
 
@@ -44,7 +44,7 @@ public class HL7MessageResolverTest {
     @MethodSource("provideAllHL7TMessages")
     void testResolveMessageTemplates(String message, String id) {
         // Example usage
-        String resolvedId = HL7MessageResolver.getMessageId(message).get();
+        String resolvedId = HL7MessageResolver.getMessageId(message).orElseThrow();
         assertEquals(id.replace("0", "_"), resolvedId);
     }
 

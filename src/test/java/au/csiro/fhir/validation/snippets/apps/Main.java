@@ -1,9 +1,7 @@
-package au.csiro.fhir;
+package au.csiro.fhir.validation.snippets.apps;
 
-import ca.uhn.fhir.context.FhirContext;
 import org.hl7.fhir.r5.formats.FormatUtilities;
 import org.hl7.fhir.r5.formats.ParserBase;
-import org.hl7.fhir.r5.elementmodel.JsonParser;
 import org.hl7.fhir.r5.elementmodel.Manager;
 import org.hl7.fhir.r5.formats.IParser;
 import org.hl7.fhir.r5.model.OperationOutcome;
@@ -14,8 +12,6 @@ import org.hl7.fhir.utilities.validation.ValidationMessage;
 import org.hl7.fhir.validation.ValidationEngine;
 import org.hl7.fhir.validation.instance.InstanceValidator;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;

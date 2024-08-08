@@ -1,4 +1,4 @@
-package au.csiro.fhir.validation;
+package au.csiro.fhir.validation.hl7;
 
 import lombok.AllArgsConstructor;
 

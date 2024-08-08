@@ -1,4 +1,4 @@
-package au.csiro.fhir.validation;
+package au.csiro.fhir.validation.hl7;
 
 import lombok.Builder;
 import lombok.Singular;
@@ -13,7 +13,7 @@ import java.util.List;
 
 @Value
 @Builder
-public class ValidationConfig implements Serializable {
+public class HL7ValidationConfig implements Serializable {
 
     // default version is R4
     public static final String DEFAULT_VERSION = "4.0.1";
@@ -53,13 +53,13 @@ public class ValidationConfig implements Serializable {
     ValidationLevel validationLevel = ValidationLevel.HINTS;
 
 
-    public static ValidationConfig defaultConfig() {
-        return ValidationConfig.builder()
+    public static HL7ValidationConfig defaultConfig() {
+        return HL7ValidationConfig.builder()
                 .build();
     }
 
-    public static ValidationConfig fromIGs(String... igs) {
-        return ValidationConfig.builder()
+    public static HL7ValidationConfig fromIGs(String... igs) {
+        return HL7ValidationConfig.builder()
                 .igs(List.of(igs))
                 .build();
     }

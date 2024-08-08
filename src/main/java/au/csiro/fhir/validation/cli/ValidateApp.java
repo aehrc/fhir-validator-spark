@@ -1,9 +1,9 @@
 package au.csiro.fhir.validation.cli;
 
 import au.csiro.fhir.utils.Streams;
-import au.csiro.fhir.validation.ValidationConfig;
+import au.csiro.fhir.validation.hl7.HL7ValidationConfig;
 import au.csiro.fhir.validation.ValidationResult;
-import au.csiro.fhir.validation.ValidationService;
+import au.csiro.fhir.validation.hl7.HL7ValidationService;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.Value;
@@ -31,8 +31,8 @@ public class ValidateApp implements Runnable {
     @CommandLine.Parameters(index = "1", description = "Output file.")
     String outputFile;
 
-    @CommandLine.Option(names = {"-v", "--fhir-version"}, description = "FHIR version.", defaultValue = ValidationConfig.DEFAULT_VERSION)
-    String fhirVersion = ValidationConfig.DEFAULT_VERSION;
+    @CommandLine.Option(names = {"-v", "--fhir-version"}, description = "FHIR version.", defaultValue = HL7ValidationConfig.DEFAULT_VERSION)
+    String fhirVersion = HL7ValidationConfig.DEFAULT_VERSION;
 
     @CommandLine.Option(names = {"-i", "--ig"}, description = "Implementation guide(s).", arity = "0..*")
     List<String> igs = List.of();
@@ -65,11 +65,11 @@ public class ValidateApp implements Runnable {
     static class Validator implements Serializable {
 
         @Nonnull
-        private final ValidationConfig config;
+        private final HL7ValidationConfig config;
 
         @Nonnull
         private Iterator<ResourceWithIssues> validatePartition(@Nonnull final Iterator<String> input) {
-            final ValidationService validationService = ValidationService.getOrCreate(config);
+            final HL7ValidationService validationService = HL7ValidationService.getOrCreate(config);
             return Streams.streamOf(input)
                     .map(s -> ResourceWithIssues.of(s, validationService.validateJson(s.getBytes(StandardCharsets.UTF_8))))
                     .filter(ResourceWithIssues::hasIssues)
@@ -86,7 +86,7 @@ public class ValidateApp implements Runnable {
         if (!debugLevel.isEmpty()) {
             sparkSession.sparkContext().setLogLevel(debugLevel);
         }
-        final ValidationConfig config = ValidationConfig.builder()
+        final HL7ValidationConfig config = HL7ValidationConfig.builder()
                 .igs(igs)
                 .showProgress(logProgress).build();
         System.out.println("Validation config: " + config);

@@ -1,10 +1,16 @@
-package au.csiro.fhir.validation.hl7;
+package au.csiro.fhir.validation.snippets;
 
 import org.hl7.fhir.utilities.SystemExitManager;
 import org.hl7.fhir.validation.ValidatorCli;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+
+/**
+ * Test the CLI with terminology validation to check for different outcomes.
+ */
+@Disabled
 public class TestCliTerminology {
 
     @BeforeAll

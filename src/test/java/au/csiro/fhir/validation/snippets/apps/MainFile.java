@@ -1,28 +1,22 @@
-package au.csiro.fhir;
+package au.csiro.fhir.validation.snippets.apps;
 
 import org.hl7.fhir.r5.elementmodel.Manager;
 import org.hl7.fhir.r5.formats.FormatUtilities;
 import org.hl7.fhir.r5.formats.IParser;
-import org.hl7.fhir.r5.formats.ParserBase;
 import org.hl7.fhir.r5.model.OperationOutcome;
-import org.hl7.fhir.r5.model.Resource;
 import org.hl7.fhir.r5.utils.EOperationOutcome;
 import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
+import org.hl7.fhir.utilities.VersionUtilities;
 import org.hl7.fhir.utilities.tests.TestConstants;
-import org.hl7.fhir.utilities.validation.ValidationMessage;
 import org.hl7.fhir.validation.ValidationEngine;
 import org.hl7.fhir.validation.cli.utils.ValidationLevel;
-import org.hl7.fhir.validation.instance.InstanceValidator;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class MainFile {
@@ -45,14 +39,22 @@ public class MainFile {
     }
 
     public static void main(String[] args) throws IOException, URISyntaxException, EOperationOutcome {
+
+        final String version = "4.0";
+        final String definitions = "dev".equals(version) ? "hl7.fhir.r5.core#current" : VersionUtilities.packageForVersion(version) + "#" + VersionUtilities.getCurrentVersion(version);
+        System.out.print("Load FHIR v" + version + " from " + definitions);
+
         final ValidationEngine validationEngine = new ValidationEngine.ValidationEngineBuilder()
+                .withTHO(false)
                 .withCanRunWithoutTerminologyServer(true)
-                .withVersion("4.0")
+                .withVersion(version)
                 .withUserAgent(TestConstants.USER_AGENT)
-                .fromSource("hl7.fhir.r4.core#4.0.1")
+                .fromSource(definitions)
                 .setBestPracticeLevel(BestPracticeWarningLevel.Error)
                 .setLevel(ValidationLevel.ERRORS);
         validationEngine.loadPackage("kindlab.fhir.mimic", "dev");
+
+        System.out.println("Package Summary:" + validationEngine.getContext().loadedPackageSummary());
 
         final String fileName = "../mimic/physionet.org/files/mimic-iv-fhir-demo/2.0/mimic-fhir/Patient.ndjson";
 

@@ -1,17 +1,17 @@
-package au.csiro.fhir.validation;
+package au.csiro.fhir.validation.hl7;
 
-import org.hl7.fhir.validation.ValidatorCli;
+import au.csiro.fhir.validation.ValidationResult;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class TxValidationTest {
-    private static final ValidationConfig NO_TX_CONFIG = ValidationConfig.builder()
+    private static final HL7ValidationConfig NO_TX_CONFIG = HL7ValidationConfig.builder()
             .ig("fhir/packages/kindlab.fhir.mimic/package.tgz")
             .showProgress(true).build();
 
-    private static final ValidationConfig WITH_TX_CONFIG = ValidationConfig.builder()
+    private static final HL7ValidationConfig WITH_TX_CONFIG = HL7ValidationConfig.builder()
             .ig("fhir/packages/kindlab.fhir.mimic/package.tgz")
             .txSever("http://tx.fhir.org")
             .showProgress(true).build();
@@ -25,7 +25,7 @@ public class TxValidationTest {
 //                "-language", "en",
 //                "-version", "4.0"
 //        });
-        ValidationService validationService = ValidationService.getOrCreate(NO_TX_CONFIG);
+        HL7ValidationService validationService = HL7ValidationService.getOrCreate(NO_TX_CONFIG);
         ValidationResult result = validationService.validateJson(
                 Files.readAllBytes(Paths.get("src/test/resources/fhir/Condition_ICD9_OK.json")));
         result.getIssues().forEach(System.out::println);
@@ -35,7 +35,7 @@ public class TxValidationTest {
     @Test
     void testInvalidICD9withoutTx() throws Exception {
 
-        ValidationService validationService = ValidationService.getOrCreate(NO_TX_CONFIG);
+        HL7ValidationService validationService = HL7ValidationService.getOrCreate(NO_TX_CONFIG);
         ValidationResult result = validationService.validateJson(
                 Files.readAllBytes(Paths.get("src/test/resources/fhir/Condition_ICD9_WrongDisplay.json")));
         result.getIssues().forEach(System.out::println);
@@ -50,7 +50,7 @@ public class TxValidationTest {
 //                "-language", "en",
 //                "-version", "4.0"
 //        });
-        ValidationService validationService = ValidationService.getOrCreate(NO_TX_CONFIG);
+        HL7ValidationService validationService = HL7ValidationService.getOrCreate(NO_TX_CONFIG);
         ValidationResult result = validationService.validateJson(
                 Files.readAllBytes(Paths.get("src/test/resources/fhir/Observation_Loinc_OK.json")));
         result.getIssues().forEach(System.out::println);
@@ -65,7 +65,7 @@ public class TxValidationTest {
 //                "-language", "en",
 //                "-version", "4.0"
 //        });
-        ValidationService validationService = ValidationService.getOrCreate(WITH_TX_CONFIG);
+        HL7ValidationService validationService = HL7ValidationService.getOrCreate(WITH_TX_CONFIG);
         ValidationResult result = validationService.validateJson(
                 Files.readAllBytes(Paths.get("src/test/resources/fhir/Observation_Loinc_OK.json")));
         result.getIssues().forEach(System.out::println);
