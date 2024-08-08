@@ -92,7 +92,11 @@ public class ValidateHapiApp implements Runnable {
         System.out.printf("Elapsed time: %.3f s", (endTime - startTime) / 1000.0);
     }
 
+    static int execute(String[] args) {
+        return new CommandLine(new ValidateHapiApp()).execute(args);
+    }
+
     public static void main(String[] args) {
-        new CommandLine(new ValidateHapiApp()).execute(args);
+        System.exit(execute(args));
     }
 }

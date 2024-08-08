@@ -4,13 +4,9 @@ import au.csiro.fhir.utils.Streams;
 import au.csiro.fhir.validation.hl7.HL7ValidationConfig;
 import au.csiro.fhir.validation.ValidationResult;
 import au.csiro.fhir.validation.hl7.HL7ValidationService;
-import lombok.AllArgsConstructor;
-import lombok.ToString;
-import lombok.Value;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
-import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.SparkSession;
+import lombok.*;
+import org.apache.spark.sql.*;
+import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
 import picocli.CommandLine;
 
 import javax.annotation.Nonnull;
@@ -19,12 +15,14 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 @CommandLine.Command(name = "validate-fhir", mixinStandardHelpOptions = true, version = "validate 1.0",
         description = "Validate FHIR resources")
 @ToString
 public class ValidateApp implements Runnable {
 
+    public static final String FILENAME_COLUMN = "filename";
     @CommandLine.Parameters(index = "0", description = "Input file.")
     String inputFile;
 
@@ -43,10 +41,30 @@ public class ValidateApp implements Runnable {
     @CommandLine.Option(names = {"-d", "--log-level"}, description = "Spark log level", defaultValue = "WARN")
     String debugLevel = "WARN";
 
+    @CommandLine.Option(names = {"-l", "--language"}, description = "Language to use")
+    String language = null;
+
+    @CommandLine.Option(names = {"-tx", "--tx-server"}, description = "Tx server to use")
+    String txServer = null;
+
+
+    @Data
+    @NoArgsConstructor
+    public static class ValueWithFile implements Serializable {
+        @Nonnull
+        String value;
+        @Nonnull
+        String filename;
+    }
+
     @Value
     public static class ResourceWithIssues implements Serializable {
         @Nonnull
         String resource;
+
+        @Nonnull
+        String filename;
+
         @Nullable
         List<ValidationResult.Issue> issues;
 
@@ -56,8 +74,8 @@ public class ValidateApp implements Runnable {
         }
 
         @Nonnull
-        static ResourceWithIssues of(@Nonnull final String resource, @Nonnull final ValidationResult validationResult) {
-            return new ResourceWithIssues(resource, validationResult.getIssues().isEmpty() ? null : validationResult.getIssues());
+        static ResourceWithIssues of(@Nonnull final String resource, @Nonnull final String filename, @Nonnull final ValidationResult validationResult) {
+            return new ResourceWithIssues(resource, filename, validationResult.getIssues().isEmpty() ? null : validationResult.getIssues());
         }
     }
 
@@ -68,10 +86,11 @@ public class ValidateApp implements Runnable {
         private final HL7ValidationConfig config;
 
         @Nonnull
-        private Iterator<ResourceWithIssues> validatePartition(@Nonnull final Iterator<String> input) {
+        private Iterator<ResourceWithIssues> validatePartition(@Nonnull final Iterator<ValueWithFile> input) {
             final HL7ValidationService validationService = HL7ValidationService.getOrCreate(config);
             return Streams.streamOf(input)
-                    .map(s -> ResourceWithIssues.of(s, validationService.validateJson(s.getBytes(StandardCharsets.UTF_8))))
+                    .map(s -> ResourceWithIssues.of(s.getValue(), s.getFilename(),
+                            validationService.validateJson(s.getValue().getBytes(StandardCharsets.UTF_8))))
                     .filter(ResourceWithIssues::hasIssues)
                     .iterator();
         }
@@ -87,19 +106,37 @@ public class ValidateApp implements Runnable {
             sparkSession.sparkContext().setLogLevel(debugLevel);
         }
         final HL7ValidationConfig config = HL7ValidationConfig.builder()
+                .txSever(txServer)
+                .language(language)
                 .igs(igs)
-                .showProgress(logProgress).build();
+                .showProgress(logProgress)
+                // hardcoded for no
+                .bestPracticeLevel(BestPracticeWarningLevel.Warning)
+                .displayMismatchAsWarning(true)
+                .build();
         System.out.println("Validation config: " + config);
         final Validator validator = new Validator(config);
         System.out.println("Validating: " + inputFile + " and writing to: " + outputFile);
-        Dataset<String> ndjsonDf = sparkSession.read().textFile(inputFile);
-        Dataset<ResourceWithIssues> result = ndjsonDf.mapPartitions(validator::validatePartition, Encoders.bean(ResourceWithIssues.class));
+        final Dataset<Row> inputDF = sparkSession.read().text(inputFile);
+        final Dataset<ValueWithFile> ndjsonDatset;
+        if (Stream.of(inputDF.columns()).noneMatch(FILENAME_COLUMN::equals)) {
+            System.out.println("Setting `filename` column to:" + inputFile);
+            ndjsonDatset = inputDF.withColumn(FILENAME_COLUMN, functions.lit(inputFile)).as(Encoders.bean(ValueWithFile.class));
+        } else {
+            System.out.println("Using `filename` column present in the dataset.");
+            ndjsonDatset = inputDF.as(Encoders.bean(ValueWithFile.class));
+        }
+        final Dataset<ResourceWithIssues> result = ndjsonDatset.mapPartitions(validator::validatePartition, Encoders.bean(ResourceWithIssues.class));
         result.toDF().write().mode(SaveMode.Overwrite).parquet(outputFile);
         long endTime = System.currentTimeMillis();
-        System.out.printf("Elapsed time: %.3f s", (endTime - startTime) / 1000.0);
+        System.out.printf("Elapsed time: %.3f s\n", (endTime - startTime) / 1000.0);
+    }
+
+    static int execute(String[] args) {
+        return new CommandLine(new ValidateApp()).execute(args);
     }
 
     public static void main(String[] args) {
-        new CommandLine(new ValidateApp()).execute(args);
+        System.exit(execute(args));
     }
 }

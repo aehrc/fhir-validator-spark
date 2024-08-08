@@ -2,11 +2,22 @@ package au.csiro.fhir.validation.cli;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class ValidateAppTest {
 
     @Test
-    void testMain() {
+    void testSingleFile() {
         System.setProperty("spark.master", "local[*]");
-        ValidateApp.main(new String[]{"data/mimic-iv-10/MimicPatient.ndjson", "target/MimicPatent-validation.parquet","-i", "fhir/packages/kindlab.fhir.mimic/package.tgz", "-p", "-d", "WARN"});
+        int exitCode = ValidateApp.execute(new String[]{"data/mimic-iv-demo-10/MimicPatient.ndjson", "target/MimicPatient-validation.parquet","-i", "data/packages/kindlab.fhir.mimic/package.tgz", "-p", "-d", "WARN"});
+        assertEquals(0, exitCode);
+    }
+
+
+    @Test
+    void testPartitionedDataset() {
+        System.setProperty("spark.master", "local[*]");
+        int exitCode = ValidateApp.execute(new String[]{"data/mimic-iv-demo-10_partitioned", "target/MimicDemo-validation.parquet","-i", "data/packages/kindlab.fhir.mimic/package.tgz", "-p", "-d", "WARN"});
+        assertEquals(0, exitCode);
     }
 }

@@ -1,5 +1,0 @@
-#!/bin/sh
-ROOT_DIR="$(dirname $0)/.."
-spark-submit \
-  --class au.csiro.fhir.validation.cli.ValidateManyApp \
-  $ROOT_DIR/target/fhir-validator-spark-1.0-SNAPSHOT-all.jar "$@"

@@ -122,7 +122,7 @@ def zero_as_dash(value):
 def validation_report(input_dir, output_file, min_level, exclude_message, partition_by_dir, limit):
     click.echo(f"Generating issue validation report from: {input_dir} to: {output_file}, with min level: {min_level}")
     partitioning = ds.DirectoryPartitioning(pa.schema([('filename',
-                                                        pa.string())])) if partition_by_dir else None  # ds.FilenamePartitioning(pa.schema([('_partname', pa.string())]))
+                                                        pa.string())])) if partition_by_dir else None
     report_tbl = ds.dataset(input_dir, format='parquet', partitioning=partitioning)
 
     message_filters = ' AND '.join([f"message NOT LIKE '{m}'" for m in exclude_message])

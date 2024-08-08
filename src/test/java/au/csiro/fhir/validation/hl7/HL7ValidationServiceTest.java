@@ -11,7 +11,7 @@ class HL7ValidationServiceTest {
 
     private final HL7ValidationConfig config = HL7ValidationConfig.builder()
             //.ig("kindlab.fhir.mimic#dev")
-            .ig("fhir/packages/kindlab.fhir.mimic/package.tgz")
+            .ig("data/packages/kindlab.fhir.mimic/package.tgz")
             .showProgress(true).build();
 
     @Test

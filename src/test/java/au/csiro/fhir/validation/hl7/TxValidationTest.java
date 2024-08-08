@@ -8,11 +8,11 @@ import java.nio.file.Paths;
 
 public class TxValidationTest {
     private static final HL7ValidationConfig NO_TX_CONFIG = HL7ValidationConfig.builder()
-            .ig("fhir/packages/kindlab.fhir.mimic/package.tgz")
+            .ig("data/packages/kindlab.fhir.mimic/package.tgz")
             .showProgress(true).build();
 
     private static final HL7ValidationConfig WITH_TX_CONFIG = HL7ValidationConfig.builder()
-            .ig("fhir/packages/kindlab.fhir.mimic/package.tgz")
+            .ig("data/packages/kindlab.fhir.mimic/package.tgz")
             .txSever("http://tx.fhir.org")
             .showProgress(true).build();
 
