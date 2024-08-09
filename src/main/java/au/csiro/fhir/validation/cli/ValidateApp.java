@@ -17,6 +17,48 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * Command line application to validate large number of FHIR resources in ndjson format using
+ * Apache Spark for parallel processing and HL7 FHIR Validator for fhir validation.
+ *
+ * <p>
+ * The input is a text file in ndjson format with each line containing a FHIR resource or a directory containing such ndjson files.
+ * Additionally, the intput directory can be partitioned using the hive style partitioning with the `filename` column, e.g.:
+ * <pre>
+ *  dataset/
+ *      filename=MimicPatient/
+ *          part-00000.ndjson
+ *          part-00001.ndjson
+ *          ...
+ *      filename=MimicObservation/
+ *          part-00000.ndjson
+ *          part-00001.ndjson
+ *          ...
+ *      ...
+ * </pre>
+ * For non-partitioned data the `filename` column is added to the dataset with the value of the input file.
+ *
+ * <p>
+ * The output is a parquet dataset with the following schema:
+ * <pre>
+ *     root
+ *     |-- resource: string (nullable = false)  // FHIR resource
+ *     |-- filename: string (nullable = fase)  // filename of the resource
+ *     |-- issues: array (nullable = true)
+ *     |    |-- element: struct (containsNull = false)
+ *     |    |    |-- level: string (nullable = false) // Issue severity (information, warning, error, fatal)
+ *     |    |    |-- type: string (nullable = false) // Issue type (according to the validator classification)
+ *     |    |    |-- message: string (nullable = false) // Issue message
+ *     |    |    |-- messageId: string (nullable = true) // Issue message id
+ *     |    |    |-- location: string (nullable = true) // Issue location, e.g. the fhirpath expression
+ *     |    |    |-- line: integer (nullable = true) // Issue line number
+ *     |    |    |-- col: integer(nullable = true) // Issue column number
+ *  </pre>
+ *
+ * @see <a href="https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator">HL7 FHIR Validator</a>
+ * @see <a href="https://github.com/hapifhir/org.hl7.fhir.core">HL7 FHIR Core tools</a>
+ *
+ */
 @CommandLine.Command(name = "validate-fhir", mixinStandardHelpOptions = true, version = "validate 1.0",
         description = "Validate FHIR resources")
 @ToString
