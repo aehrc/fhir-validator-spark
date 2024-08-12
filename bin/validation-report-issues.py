@@ -117,7 +117,7 @@ def zero_as_dash(value):
 @click.option('--partition-by-dir', help='Partition the input directory by directory. Default=False', is_flag=True)
 @click.option('--min-level', default=3,
               help='Minimum level to include in the report. Information=1, Warning=2, Error=3, Fatal=4. Default=3')
-@click.option('--exclude-message', multiple=True, help='Exclude messages containing the provided strings')
+@click.option('--exclude-message', multiple=True, help='Exclude messages matching the given SQL LIKE pattern')
 @click.option('--limit', help='The max number of issues to include in the report. Default=-1', default=None, type=int)
 def validation_report(input_dir, output_file, min_level, exclude_message, partition_by_dir, limit):
     click.echo(f"Generating issue validation report from: {input_dir} to: {output_file}, with min level: {min_level}")

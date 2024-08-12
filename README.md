@@ -135,12 +135,37 @@ To see the available options, run the following command:
   bin/validate-fhir --help
 ```
 
+
 The application is implemented in the `au.csiro.fhir.validation.cli.ValidateApp` class.
 
 See also:
 
 - <a href="https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator">HL7 FHIR Validator</a>
 - <a href="https://github.com/hapifhir/org.hl7.fhir.core">HL7 FHIR Core tools</a>
+
+## Report generation
+
+
+### validation-report-issues.py
+
+Generates a single report file with  the issues are aggregated by: 
+- level
+- type
+- message_id
+- filename
+
+For each group an example is provided (including the actual message, the location
+of the issue and the json representation of the resource) as well as the count of the issues.
+
+Command line options can be used to:
+- filter the issues by level (`--min-level`)
+- limit the total number of issues in the report  (`--limit`)
+- exclude messages matching the given SQL `LIKE` pattern(s) (`--exclude-message`)
+
+To see the available options, run the following command:
+```sh
+  bin/validation-report-issues.py --help
+```
 
 ## Important note
 
