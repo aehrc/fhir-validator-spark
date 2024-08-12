@@ -113,7 +113,7 @@ public class CollectorErrorHandler implements IParserErrorHandler {
     private void addError(@Nonnull String code, @Nonnull String message, @Nullable final IParseLocation theLocation) {
         issues.add(ValidationResult.Issue.builder()
                 .level("error")
-                .type(code)
+                .type(code.trim())
                 .message(message)
                 .location(nonNull(theLocation) ? theLocation.toString() : null).build());
     }

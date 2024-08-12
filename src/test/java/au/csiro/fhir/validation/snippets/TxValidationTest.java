@@ -1,11 +1,15 @@
-package au.csiro.fhir.validation.hl7;
+package au.csiro.fhir.validation.snippets;
 
 import au.csiro.fhir.validation.ValidationResult;
+import au.csiro.fhir.validation.hl7.HL7ValidationConfig;
+import au.csiro.fhir.validation.hl7.HL7ValidationService;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+@Disabled("Used to check the output of the ValidatorCli for different scenarios")
 public class TxValidationTest {
     private static final HL7ValidationConfig NO_TX_CONFIG = HL7ValidationConfig.builder()
             .ig("data/packages/kindlab.fhir.mimic/package.tgz")

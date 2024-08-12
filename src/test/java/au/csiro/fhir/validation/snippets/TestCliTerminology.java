@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Test the CLI with terminology validation to check for different outcomes.
  */
-@Disabled
+@Disabled("Used to check the output of the ValidatorCli for different scenarios")
 public class TestCliTerminology {
 
     @BeforeAll

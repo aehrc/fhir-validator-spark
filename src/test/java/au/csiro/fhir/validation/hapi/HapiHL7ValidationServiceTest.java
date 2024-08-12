@@ -19,7 +19,6 @@ class HapiHL7ValidationServiceTest {
                 .message("HAPI-1861: Failed to parse JSON encoded FHIR content: Unexpected character ('d' (code 100)): was expecting double-quote to start field name\n" +
                         " at [Source: UNKNOWN; line: 1, column: 4]")
                 .build();
-        System.out.println(result);
         assertEquals(ValidationResult.of(parsingErrrorIssue), result);
     }
 
@@ -28,8 +27,13 @@ class HapiHL7ValidationServiceTest {
 
         final String invalidJson = "{ \"resourceType\": \"Patient\", \"id\": \"example\", \"active\": true, \"name\": {}, \"xxx\":\"yy\"}";
         final HapiValidationService service = HapiValidationService.getOrCreate(FhirVersionEnum.R4);
-        ValidationResult result = service.validateJson(invalidJson.getBytes());
-        System.out.println(result);
+        final ValidationResult result = service.validateJson(invalidJson.getBytes());
+
+        final ValidationResult expectedResult = ValidationResult.of(
+                ValidationResult.Issue.builder().level("error").type("HAPI-1820:").message("Found incorrect type for element name - Expected ARRAY and found OBJECT").build(),
+                ValidationResult.Issue.builder().level("error").type("HAPI-1825:").message("Unknown element 'xxx' found during parse").build()
+        );
+        assertEquals(expectedResult, result);
     }
 
 }
