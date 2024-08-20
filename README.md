@@ -1,20 +1,46 @@
 # FHIR Validation on Apache Spark
 
+[![Test](https://github.com/aehrc/fhir-validator-spark/workflows/Verify/badge.svg)](https://github.com/aehrc/fhir-validator-spark/actions?query=workflow%3AVerify)
+
 This project provides tools for validating large sets of FHIR resources using Apache Spark parallel processing.
 It supports validation of resources in NDJSON format
 with [HL7 FHIR Validator](https://github.com/hapifhir/org.hl7.fhir.core).
 
 ## Prerequisites
 
-- Java 11 or higher
+- Java 11
 - Spark 3.4.x
 - Maven
 - Python 3.x
 - Pip
 
+
+
+## Installing the Project from the distribution
+
+The binary distribution of the project is available as a tar.gz  file in the GitHub releases.
+
+To install the project from the distribution tar.gz follow these steps:
+
+1. **Download the distribution tar.gz file**:
+   - Navigate to the [Releases](https://github.com/aehrc/fhir-validator-spark/releases) page of the project on GitHub.
+   - Download the latest release tar.gz file (e.g., `fhir-validator-spark-VERSION-dist.tar.gz`).
+
+2. **Extract the Tar.gz File**:
+   - Use the following command to extract the tar.gz file:
+     ```sh
+     tar -xzf fhir-validator-spark-VERSION-dist.tar.gz
+     ```
+
+3. **Navigate to the Extracted Directory**:
+   - Change to the directory created by extracting the tar.gz file:
+     ```sh
+     cd fhir-validator-spark-VERSION/
+     ```
+
 ## Building the Project
 
-To build the project, run the following command:
+To build the project from sources, run the following command:
 
 ```sh
 mvn clean install

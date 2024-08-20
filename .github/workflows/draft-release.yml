@@ -1,0 +1,51 @@
+# This workflow:
+# - Verifies that maven project version is a release version
+# - Creates a draft release
+# This is only run when a version tag is pushed.
+
+name: Draft Release
+on:
+  push:
+    tags:
+      - "v**"
+
+env:
+  distribution: 'zulu'
+  java-version: 11
+
+jobs:
+   draft-release:
+    name: Draft GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up JDK ${{ env.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.java-version }}
+          distribution: ${{ env.distribution }}
+          cache: 'maven'
+          cache-dependency-path: 'pom.xml'
+      - name: Check if is a RELEASE version
+        run: |
+          if [[ $(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) != *SNAPSHOT* ]]; then
+              echo "Verified is a RELEASE version"
+          else
+              echo "Not a RELEASE version"
+              exit 1
+          fi            
+      - name: Extract tag name
+        id: extract_tag
+        run: echo "TAG_NAME=$(echo ${GITHUB_REF#refs/tags/})" >> $GITHUB_ENV
+      - name: Build distributions
+        run: mvn -B package --file pom.xml -DskipTests -Pdist
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.TAG_NAME }}
+          draft: true
+          prerelease: false
+          files: |
+            target/*.tar.gz

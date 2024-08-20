@@ -6,7 +6,7 @@
 
     <groupId>au.csiro.fhir</groupId>
     <artifactId>fhir-validator-spark</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 
     <properties>
         <project.majorVersion>6</project.majorVersion>
@@ -236,13 +236,21 @@
                                                   xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
                                             <id>dist</id>
                                             <formats>
-                                                <format>zip</format>
+                                                <format>tar.gz</format>
                                             </formats>
-                                            <includeBaseDirectory>false</includeBaseDirectory>
+                                            <includeBaseDirectory>true</includeBaseDirectory>
                                             <fileSets>
                                                 <fileSet>
-                                                    <directory>${project.build.directory}</directory>
+                                                    <directory>${project.basedir}</directory>
                                                     <outputDirectory>/</outputDirectory>
+                                                    <includes>
+                                                        <include>README.md</include>
+                                                        <include>LICENSE</include>
+                                                    </includes>
+                                                </fileSet>
+                                                <fileSet>
+                                                    <directory>${project.build.directory}</directory>
+                                                    <outputDirectory>/lib</outputDirectory>
                                                     <includes>
                                                         <include>*-all.jar</include>
                                                     </includes>
@@ -262,22 +270,13 @@
                                                     </includes>
                                                 </fileSet>
                                                 <fileSet>
-                                                    <directory>fhir</directory>
-                                                    <outputDirectory>/fhir</outputDirectory>
+                                                    <directory>env</directory>
+                                                    <outputDirectory>/env</outputDirectory>
                                                     <includes>
                                                         <include>**/*</include>
                                                     </includes>
                                                 </fileSet>
                                             </fileSets>
-                                            <!-- uncomment to check the sizes of the dependencies -->
-                                            <!--dependencySets>
-                                                <dependencySet>
-                                                    <outputDirectory>/jars</outputDirectory>
-                                                    <useProjectArtifact>false</useProjectArtifact>
-                                                    <unpack>false</unpack>
-                                                    <scope>runtime</scope>
-                                                </dependencySet>
-                                            </dependencySets-->
                                         </assembly>
                                     </inlineDescriptors>
                                 </configuration>
