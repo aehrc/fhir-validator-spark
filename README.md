@@ -8,10 +8,10 @@ with [HL7 FHIR Validator](https://github.com/hapifhir/org.hl7.fhir.core).
 
 ## Prerequisites
 
-- Java 11
-- Spark 3.4.x
+- Java 17 or later (built for Java 17 bytecode, tested on Java 21)
+- Spark 4.0.x, built for Scala 2.13
 - Maven
-- Python 3.x
+- Python 3.9 or later
 - Pip
 
 
@@ -45,6 +45,10 @@ To build the project from sources, run the following command:
 ```sh
 mvn clean install
 ```
+
+This writes the shaded jar to `target/fhir-validator-spark-VERSION-all.jar`. That jar is what
+`bin/validate-fhir` submits, and what to put on the classpath of an application that calls the
+Java API.
 
 ## Validating FHIR Resources
 
@@ -168,6 +172,35 @@ See also:
 
 - <a href="https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator">HL7 FHIR Validator</a>
 - <a href="https://github.com/hapifhir/org.hl7.fhir.core">HL7 FHIR Core tools</a>
+
+## Validating from an existing Spark session
+
+`au.csiro.fhir.validation.spark.ValidationApi` validates resources in a session that something
+else owns, for example the session of an application that has just produced the resources. It is
+the same validator the command line application uses, and it adds the same `issues` column, so
+either producer's output can be read by the report scripts.
+
+```java
+final ValidationConfig config = ValidationConfig.builder()
+        .ig("data/packages/kindlab.fhir.mimic/package.tgz")
+        .terminologyServerUrl("https://tx.fhir.org/r4")
+        .build();
+final ValidationApi api = ValidationApi.create(existingSession, config);
+
+// Either validate a dataset of resource JSON, keeping its other columns,
+final Dataset<Row> results = api.validate(resources);
+
+// or validate every NDJSON resource under a path.
+final Dataset<Row> fromPath = api.validatePath("data/mimic-iv-demo-10");
+```
+
+`ValidationConfig` carries the implementation guides, the terminology server, the FHIR version,
+and the names of the resource and filename columns. Setting `resolveTerminology(false)` validates
+without a terminology server, against only the code systems the loaded packages supply.
+
+The session is used as it is found: the API never creates, stops or reconfigures it. The
+validator is expensive to build, so it is built once per executor thread and reused for every
+partition that thread validates, never per row.
 
 ## Report generation
 

@@ -89,3 +89,62 @@ unchanged, so existing invocations and existing result datasets keep working.
   loading the terminology package exactly as `withTHO(false)` did.
 - `org.hl7.fhir.validation.cli.utils.ValidationLevel` moved to
   `org.hl7.fhir.validation.service.utils.ValidationLevel`.
+- `org.hl7.fhir.validation.ValidatorCli` is no longer published in
+  `org.hl7.fhir.validation`, and there is no 6.5.26 release of
+  `org.hl7.fhir.validation.cli`. The two disabled scratch pads that drove it,
+  `snippets/TestCliTerminology` and `snippets/apps/MainCli`, are deleted;
+  nothing in the project's own surface used it.
+
+### Behaviour changes absorbed
+
+- A JSON parse failure no longer carries a location. It used to report
+  `(document)`. `HL7ValidationServiceTest.testInvalidJson` records the new
+  behaviour.
+- HAPI 8.2.0 disables `StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION`, so the
+  tail of a Jackson parse error now reads `at [Source: REDACTED ...]` rather
+  than `at [Source: UNKNOWN ...]`, and the reported column moves by one.
+  `HapiHL7ValidationServiceTest.testJsonParsingError` now asserts the level,
+  the type and the HAPI error, rather than Jackson's source location.
+- `Type_Specific_Checks_DT_URL_Resolve` was reworded from
+  `URL value ''{0}'' does not resolve` to
+  `No definition could be found for URL value ''{0}''`. The sample in
+  `HL7MessageResolverTest` is updated to the current wording.
+- 6.5.26 adds message templates that are word for word identical to others,
+  such as `QUESTIONNAIRE_QR_ITEM_{DATE,DECIMAL,INTEGER,TIME}_MAX`, all of which
+  are `The value {0} is greater than the allowed maximum of {1}`, and
+  `VALUESET_REFERENCE_INVALID_TYPE_NO_VERSION_1` and `_2`. Those ids cannot be
+  told apart from a message, which the hand maintained `EXCLUDE` list in
+  `HL7MessageResolver` used to patch three at a time. It is replaced by a
+  general rule: of each group of identical templates, keep the one with the
+  lowest id. That reproduces the previous choice for all three of the excluded
+  ids and needs no maintenance when the message bundle changes again.
+
+### Why the Parquet schema cannot have changed
+
+The output schema is whatever `Encoders.bean` makes of
+`ValidateApp.ResourceWithIssues`, and that class is untouched. Spark's bean
+inference is also untouched between the two releases: the field list, the
+ordering by property name, the `javax.annotation.Nonnull` nullability rule and
+the array `containsNull` rule in `JavaTypeInference` are identical in
+`v3.4.3` and `v4.0.2`. `ValidationApiTest` pins the API's `issues` column to
+the same bean derived type, so the two producers cannot drift apart either.
+
+The schema `bin/validate-fhir` writes, read back with `pyarrow`:
+
+```
+filename: string not null
+issues: list<element: struct<col: int32, level: string not null, line: int32, location: string, message: string not null, messageId: string, type: string not null>>
+resource: string not null
+```
+
+### Verification
+
+- `mvn clean install` on Java 21: `Tests run: 1380, Failures: 0, Errors: 0,
+  Skipped: 4`, `BUILD SUCCESS`. The test count rose from the baseline's 1103
+  because `HL7MessageResolverTest` is generated from the validator's message
+  bundle, which has grown; the skipped four are the remaining disabled
+  scratch pads.
+- `bin/validate-fhir data/mimic-iv-demo-10/MimicPatient.ndjson target/out --ig
+  data/packages/kindlab.fhir.mimic/package.tgz` writes ten rows, and
+  `bin/validation-report-issues.py target/out target/report-patient.html
+  --min-level 0` renders them with message ids resolved.
