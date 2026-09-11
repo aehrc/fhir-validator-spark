@@ -128,6 +128,12 @@
                 <configuration>
                     <forkCount>1</forkCount>
                     <reuseForks>false</reuseForks>
+                    <systemPropertyVariables>
+                        <!-- So that HapiLibraryVersionTest can compare the resolved
+                             hapi-fhir-base version against the version this build asks
+                             the structures modules for. -->
+                        <hapi.structuresVersion>${hapi.structuresVersion}</hapi.structuresVersion>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
             <plugin>
@@ -220,6 +226,20 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
                 <version>${fasterxml.jacksonVersion}</version>
+            </dependency>
+            <!--
+              Pinned to the structures version. `org.hl7.fhir.validation` depends on
+              hapi-fhir-base 6.4.1 and the structures modules on 8.2.0; without this
+              entry Maven's nearest-wins rule takes 6.4.1, and the shaded jar then
+              ships a base library older than the structures built against it. That
+              mismatch removes `MethodOutcome.setResponseStatusCode`, which any HAPI
+              8.x client on the same class path calls, so a consumer such as Pathling
+              fails with `NoSuchMethodError` as soon as it talks to a FHIR server.
+            -->
+            <dependency>
+                <groupId>ca.uhn.hapi.fhir</groupId>
+                <artifactId>hapi-fhir-base</artifactId>
+                <version>${hapi.structuresVersion}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
