@@ -17,11 +17,11 @@ class HL7ValidationServiceTest {
     void testInvalidJson() {
         final HL7ValidationService validationService = HL7ValidationService.getOrCreate(config);
         final ValidationResult result = validationService.validateJson("invalid json".getBytes(StandardCharsets.UTF_8));
+        // Since org.hl7.fhir.validation 6.5.x a JSON parse failure carries no location.
         final ValidationResult expectedResult = ValidationResult.of(
                 ValidationResult.Issue.builder().level("fatal").type("invalid")
                         .message("Error parsing JSON: Error parsing JSON source: Unexpected content at start of JSON: String at Line 1 (path=[invalid])")
                         .messageId("ERROR_PARSING_JSON_")
-                        .location("(document)")
                         .build()
         );
         assertEquals(expectedResult, result);

@@ -9,7 +9,7 @@ import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
 import org.hl7.fhir.utilities.VersionUtilities;
 import org.hl7.fhir.utilities.tests.TestConstants;
 import org.hl7.fhir.validation.ValidationEngine;
-import org.hl7.fhir.validation.cli.utils.ValidationLevel;
+import org.hl7.fhir.validation.service.utils.ValidationLevel;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class MainFile {
         System.out.print("Load FHIR v" + version + " from " + definitions);
 
         final ValidationEngine validationEngine = new ValidationEngine.ValidationEngineBuilder()
-                .withTHO(false)
+                .withThoVersion(null)
                 .withCanRunWithoutTerminologyServer(true)
                 .withVersion(version)
                 .withUserAgent(TestConstants.USER_AGENT)

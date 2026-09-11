@@ -5,6 +5,7 @@ import ca.uhn.fhir.context.FhirVersionEnum;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HapiHL7ValidationServiceTest {
 
@@ -14,12 +15,15 @@ class HapiHL7ValidationServiceTest {
         final String invalidJson = "{ deer }";
         final HapiValidationService service = HapiValidationService.getOrCreate(FhirVersionEnum.R4);
         final ValidationResult result = service.validateJson(invalidJson.getBytes());
-        final ValidationResult.Issue parsingErrrorIssue = ValidationResult.Issue.builder().level("fatal")
-                .type("DataFormatException")
-                .message("HAPI-1861: Failed to parse JSON encoded FHIR content: Unexpected character ('d' (code 100)): was expecting double-quote to start field name\n" +
-                        " at [Source: UNKNOWN; line: 1, column: 4]")
-                .build();
-        assertEquals(ValidationResult.of(parsingErrrorIssue), result);
+
+        assertEquals(1, result.getIssues().size());
+        final ValidationResult.Issue issue = result.getIssues().get(0);
+        assertEquals("fatal", issue.getLevel());
+        assertEquals("DataFormatException", issue.getType());
+        // The tail of the message is Jackson's source location, which its own settings decide.
+        assertTrue(issue.getMessage().startsWith("HAPI-1861: Failed to parse JSON encoded FHIR content: "
+                        + "Unexpected character ('d' (code 100)): was expecting double-quote to start field name"),
+                () -> "Unexpected message: " + issue.getMessage());
     }
 
     @Test

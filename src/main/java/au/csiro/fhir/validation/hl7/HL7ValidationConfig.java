@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
 import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
-import org.hl7.fhir.validation.cli.utils.ValidationLevel;
+import org.hl7.fhir.validation.service.utils.ValidationLevel;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

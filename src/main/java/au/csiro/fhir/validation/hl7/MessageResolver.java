@@ -31,7 +31,7 @@ public class MessageResolver {
     }
 
     @Nonnull
-    private static String messageToRegex(@Nonnull final String message) {
+    static String messageToRegex(@Nonnull final String message) {
         // unescape '' and split message using regex matching {0} and {1} and {2} etc
         String[] parts = message.replace("''", "'").split("\\{\\d+\\}", -1);
         // now Pattern.quote() the parts and join them with the regex matching any character

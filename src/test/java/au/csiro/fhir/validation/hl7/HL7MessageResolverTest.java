@@ -14,7 +14,7 @@ public class HL7MessageResolverTest {
     // NOTICE: Watch out for trailing whitespaces in the messages!
     private static Stream<Arguments> provideMessagesWithIds() {
         return Stream.of(
-                Arguments.of("URL value 'http://mimic.mit.edu/fhir/mimic/identifier/encounter-hosp' does not resolve", "TYPE_SPECIFIC_CHECKS_DT_URL_RESOLVE"),
+                Arguments.of("No definition could be found for URL value 'http://mimic.mit.edu/fhir/mimic/identifier/encounter-hosp'", "TYPE_SPECIFIC_CHECKS_DT_URL_RESOLVE"),
                 Arguments.of("Best Practice Recommendation: In general, all observations should have a performer", "ALL_OBSERVATIONS_SHOULD_HAVE_A_PERFORMER"),
                 Arguments.of("value should not start or finish with whitespace '2 '", "TYPE_SPECIFIC_CHECKS_DT_STRING_WS"),
                 Arguments.of("The value '0.005008015591556614' is outside the range of commonly/reasonably supported decimals", "TYPE_SPECIFIC_CHECKS_DT_DECIMAL_RANGE"),

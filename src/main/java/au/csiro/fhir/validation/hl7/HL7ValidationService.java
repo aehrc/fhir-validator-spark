@@ -22,7 +22,13 @@ import static java.util.Objects.nonNull;
 @Slf4j
 public class HL7ValidationService implements ValidationService {
 
-    private static final ThreadLocal<ValidationEngine> ENGINE = new ThreadLocal<>();
+    /**
+     * Validation engines, one per configuration, held per thread because the underlying instance
+     * validator is not thread safe. An engine is built at most once per thread and configuration,
+     * and reused for every resource that thread validates.
+     */
+    private static final ThreadLocal<Map<HL7ValidationConfig, ValidationEngine>> ENGINES =
+            ThreadLocal.withInitial(HashMap::new);
     private final ValidationEngine validationEngine;
     private final boolean showProgress;
 
@@ -49,19 +55,21 @@ public class HL7ValidationService implements ValidationService {
         }
     }
 
+    /**
+     * Returns a validation service for the given configuration, building its engine only if this
+     * thread has not already built one for that configuration.
+     *
+     * @param config the validation configuration
+     * @return a validation service backed by a cached engine
+     */
     @Nonnull
     @SneakyThrows
     public static HL7ValidationService getOrCreate(@Nonnull final HL7ValidationConfig config) {
-        // NOTE: This is currently assuming that the config does not change for a thread
-        // and always returns the exising engine with the initial config regardless of the input config
-        if (ENGINE.get() != null) {
-            log.debug("Re-using thread-local ValidationEngine for config: {}", config);
-            return new HL7ValidationService(ENGINE.get(), config.isShowProgress());
-        }
-
-        log.debug("Setting thread-local clone of ValidationEngine for config: {}", config);
-        ENGINE.set(createEngine(config));
-        return new HL7ValidationService(ENGINE.get(), config.isShowProgress());
+        final ValidationEngine engine = ENGINES.get().computeIfAbsent(config, c -> {
+            log.debug("Setting thread-local ValidationEngine for config: {}", c);
+            return createEngine(c);
+        });
+        return new HL7ValidationService(engine, config.isShowProgress());
     }
 
     @Nonnull
@@ -83,7 +91,9 @@ public class HL7ValidationService implements ValidationService {
         final String fhirDefinition = HL7Utils.getFhirDefinitionFromVersion(config.getVersion());
         log.info("Load FHIR v{} from {}", config.getVersion(), fhirDefinition);
         final ValidationEngine validationEngine = builder
-                .withTHO(false)
+                // The terminology package is only loaded when a version is set, so leaving the
+                // version unset is the replacement for the withTHO(false) of earlier releases.
+                .withThoVersion(null)
                 .withCanRunWithoutTerminologyServer(true)
                 .withVersion(config.getVersion())
                 .withUserAgent(TestConstants.USER_AGENT)
