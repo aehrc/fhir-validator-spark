@@ -114,6 +114,11 @@ class ValidationApiTest {
                 .collect(Collectors.toUnmodifiableList());
     }
 
+    @Nonnull
+    private static String locationOf(@Nonnull final Row issue) {
+        return String.valueOf(issue.<String>getAs("location"));
+    }
+
     @Test
     void validatesResourcesInASessionItDidNotCreate() {
         final ValidationApi api = ValidationApi.create(externalSession, config());
@@ -133,12 +138,10 @@ class ValidationApiTest {
         // The non-conformant resource has an error that names the offending element.
         final List<Row> errors = issuesAtLevel(rowFor(rows, "non-conformant.ndjson"), "error");
         assertFalse(errors.isEmpty(), "Expected an error issue for an invalid gender code");
-        assertTrue(errors.stream().anyMatch(i -> String.valueOf(i.getAs("location")).contains("Patient.gender")),
-                () -> "Expected an error located at Patient.gender, got: " + errors);
         final Row error = errors.stream()
-                .filter(i -> String.valueOf(i.getAs("location")).contains("Patient.gender"))
+                .filter(i -> locationOf(i).contains("Patient.gender"))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() -> new AssertionError("Expected an error at Patient.gender, got: " + errors));
         assertNotNull(error.getAs("type"));
         assertNotNull(error.getAs("message"));
     }
