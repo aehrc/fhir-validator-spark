@@ -8,10 +8,10 @@ env:
   distribution: 'zulu'
 
 jobs:          
-  verify-java-11:
+  verify-java-21:
     runs-on: ubuntu-latest
     env:
-      java-version: 11
+      java-version: 21
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.java-version }}
