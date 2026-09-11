@@ -13,6 +13,7 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.hl7.fhir.r5.utils.validation.constants.ReferenceValidationPolicy;
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;
@@ -41,6 +42,15 @@ class ValidationApiTest {
     private static final String NON_CONFORMANT_PATIENT = "{\"resourceType\":\"Patient\",\"id\":\"non-conformant\","
             + "\"text\":{\"status\":\"generated\",\"div\":\"<div xmlns=\\\"http://www.w3.org/1999/xhtml\\\">A patient</div>\"},"
             + "\"gender\":\"banana\",\"birthDate\":\"1980-01-01\"}";
+
+    /**
+     * A resource whose reference names a resource that is not in the input. Every resource the
+     * Dataset API validates is in that position, since a row carries one resource and nothing else.
+     */
+    private static final String REFERRING_OBSERVATION = "{\"resourceType\":\"Observation\",\"id\":\"referring\","
+            + "\"text\":{\"status\":\"generated\",\"div\":\"<div xmlns=\\\"http://www.w3.org/1999/xhtml\\\">An observation</div>\"},"
+            + "\"status\":\"final\",\"code\":{\"text\":\"A code\"},"
+            + "\"subject\":{\"reference\":\"Patient/not-in-the-input\"}}";
 
     private static final StructType INPUT_SCHEMA = new StructType()
             .add("resource", DataTypes.StringType, false)
@@ -88,6 +98,13 @@ class ValidationApiTest {
         return externalSession.createDataFrame(List.of(
                 RowFactory.create(CONFORMANT_PATIENT, "conformant.ndjson"),
                 RowFactory.create(NON_CONFORMANT_PATIENT, "non-conformant.ndjson")
+        ), INPUT_SCHEMA);
+    }
+
+    @Nonnull
+    private static Dataset<Row> referringDataset() {
+        return externalSession.createDataFrame(List.of(
+                RowFactory.create(REFERRING_OBSERVATION, "referring.ndjson")
         ), INPUT_SCHEMA);
     }
 
@@ -188,5 +205,31 @@ class ValidationApiTest {
         final List<Row> rows = result.collectAsList();
         assertEquals(10, rows.size());
         assertTrue(rows.stream().allMatch(r -> "data/mimic-iv-demo-10/MimicPatient.ndjson".equals(r.getAs("filename"))));
+    }
+
+    @Test
+    void doesNotReportAReferenceItCannotResolve() {
+        final ValidationApi api = ValidationApi.create(externalSession, config());
+        final Row row = api.validate(referringDataset()).collectAsList().get(0);
+
+        // A row carries one resource, so no reference in it can ever be resolved. Reporting each
+        // one would make every reference in a dataset a false positive.
+        assertEquals(List.of(), issuesAtLevel(row, "error"), "Expected no error for an unresolvable reference");
+        assertEquals(List.of(), issuesAtLevel(row, "fatal"));
+    }
+
+    @Test
+    void reportsAReferenceItCannotResolveWhenAskedTo() {
+        final ValidationConfig checking = ValidationConfig.builder()
+                .resolveTerminology(false)
+                .referenceValidationPolicy(ReferenceValidationPolicy.CHECK_VALID)
+                .build();
+        final ValidationApi api = ValidationApi.create(externalSession, checking);
+        final Row row = api.validate(referringDataset()).collectAsList().get(0);
+
+        // The command line's behaviour, which validates a whole file at a time, is still available.
+        final List<Row> errors = issuesAtLevel(row, "error");
+        assertTrue(errors.stream().anyMatch(i -> locationOf(i).contains("Observation.subject")),
+                "Expected an error at Observation.subject, got: " + errors);
     }
 }

@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
 import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
+import org.hl7.fhir.r5.utils.validation.constants.ReferenceValidationPolicy;
 import org.hl7.fhir.validation.service.utils.ValidationLevel;
 
 import javax.annotation.Nonnull;
@@ -47,6 +48,16 @@ public class HL7ValidationConfig implements Serializable {
     @Nonnull
     @Builder.Default
     BestPracticeWarningLevel bestPracticeLevel = BestPracticeWarningLevel.Warning;
+
+    /**
+     * How references are validated. {@link ReferenceValidationPolicy#CHECK_VALID} resolves every
+     * reference and reports the ones it cannot, which is right when a whole file or bundle is
+     * validated at once. {@link ReferenceValidationPolicy#IGNORE} leaves references alone, which is
+     * right when each resource is validated on its own and no target can be in scope.
+     */
+    @Nonnull
+    @Builder.Default
+    ReferenceValidationPolicy referenceValidationPolicy = ReferenceValidationPolicy.CHECK_VALID;
 
     @Nonnull
     @Builder.Default

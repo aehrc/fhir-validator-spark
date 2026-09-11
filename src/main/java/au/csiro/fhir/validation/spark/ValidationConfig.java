@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
 import org.hl7.fhir.r5.utils.validation.constants.BestPracticeWarningLevel;
+import org.hl7.fhir.r5.utils.validation.constants.ReferenceValidationPolicy;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -99,6 +100,17 @@ public class ValidationConfig implements Serializable {
     boolean logProgress = false;
 
     /**
+     * How references are validated. This defaults to {@link ReferenceValidationPolicy#IGNORE},
+     * unlike the command line, because a row of the input carries one resource: a reference to
+     * another resource can never be resolved, so resolving references would report every reference
+     * in the dataset as an error. A caller whose rows carry a bundle, and so carry their own
+     * targets, can ask for {@link ReferenceValidationPolicy#CHECK_VALID}.
+     */
+    @Nonnull
+    @Builder.Default
+    ReferenceValidationPolicy referenceValidationPolicy = ReferenceValidationPolicy.IGNORE;
+
+    /**
      * Translates this configuration into the configuration of the underlying HL7 validation
      * engine. This is the same configuration the command line application builds, so the two
      * producers report the same issues.
@@ -117,6 +129,7 @@ public class ValidationConfig implements Serializable {
                 .showProgress(logProgress)
                 .bestPracticeLevel(BestPracticeWarningLevel.Warning)
                 .displayMismatchAsWarning(displayMismatchAsWarning)
+                .referenceValidationPolicy(referenceValidationPolicy)
                 .build();
     }
 }

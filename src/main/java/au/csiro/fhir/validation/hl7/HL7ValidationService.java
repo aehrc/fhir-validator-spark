@@ -11,6 +11,7 @@ import org.hl7.fhir.utilities.tests.TestConstants;
 import org.hl7.fhir.utilities.validation.ValidationMessage;
 import org.hl7.fhir.validation.ValidationEngine;
 import org.hl7.fhir.validation.instance.InstanceValidator;
+import org.hl7.fhir.validation.instance.advisor.BasePolicyAdvisorForFullValidation;
 
 import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
@@ -104,6 +105,11 @@ public class HL7ValidationService implements ValidationService {
                 .setDisplayWarnings(config.isDisplayMismatchAsWarning())
                 .setShowTimes(false)
                 .setDebug(false);
+        // The policy advisor decides what is done with a reference. The default advisor of a
+        // full validation resolves every reference, which is only right when the whole file is in
+        // scope, so the configured policy is applied here.
+        validationEngine.setPolicyAdvisor(
+                new BasePolicyAdvisorForFullValidation(config.getReferenceValidationPolicy()));
         for (final String ig : config.getIgs()) {
             validationEngine.loadPackage(ig, null);
         }
