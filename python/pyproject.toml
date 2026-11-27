@@ -6,6 +6,8 @@ version = "2.0.0.dev0"
 description = "Validates FHIR resources in NDJSON format with the HL7 FHIR Validator on Apache Spark, and reports the issues found."
 readme = "README.md"
 license = "Apache-2.0"
+# A copy of the LICENSE at the root of the repository, as the build only includes files in python/.
+license-files = ["LICENSE"]
 authors = [
     { name = "John Grimes", email = "john.grimes@csiro.au" },
     { name = "Piotr Szul", email = "piotr.szul@csiro.au" },
