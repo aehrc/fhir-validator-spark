@@ -8,6 +8,44 @@
     <artifactId>fhir-validator-spark</artifactId>
     <version>2.0.0-SNAPSHOT</version>
 
+    <name>FHIR Validator for Spark</name>
+    <description>Validates FHIR resources in NDJSON format with the HL7 FHIR Validator on Apache Spark.</description>
+    <url>https://github.com/aehrc/fhir-validator-spark</url>
+
+    <organization>
+        <name>CSIRO Australian e-Health Research Centre</name>
+        <url>https://aehrc.csiro.au</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>John Grimes</name>
+            <email>john.grimes@csiro.au</email>
+            <organization>CSIRO Australian e-Health Research Centre</organization>
+            <organizationUrl>https://aehrc.csiro.au</organizationUrl>
+        </developer>
+        <developer>
+            <name>Piotr Szul</name>
+            <email>piotr.szul@csiro.au</email>
+            <organization>CSIRO Australian e-Health Research Centre</organization>
+            <organizationUrl>https://aehrc.csiro.au</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/aehrc/fhir-validator-spark.git</connection>
+        <developerConnection>scm:git:git@github.com:aehrc/fhir-validator-spark.git</developerConnection>
+        <url>https://github.com/aehrc/fhir-validator-spark</url>
+    </scm>
+
     <properties>
         <project.majorVersion>6</project.majorVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -128,7 +166,10 @@
                 </configuration>
             </plugin>
             <plugin>
-                <!-- shade plugin to build the fat jar -->
+                <!-- Shade plugin to build the main artifact: a self-contained JAR in which the
+                     dependencies that clash with those of Spark are relocated. The dependency-reduced
+                     POM that is installed and published with it lists none of the bundled
+                     dependencies, so that Spark resolves this JAR alone when it is given as a package. -->
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.5.3</version>
@@ -139,9 +180,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>all</shadedClassifierName>
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -253,7 +292,7 @@
                                                     <directory>${project.build.directory}</directory>
                                                     <outputDirectory>/lib</outputDirectory>
                                                     <includes>
-                                                        <include>*-all.jar</include>
+                                                        <include>${project.build.finalName}.jar</include>
                                                     </includes>
                                                 </fileSet>
                                                 <fileSet>
@@ -283,6 +322,73 @@
                                 </configuration>
                             </execution>
                         </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!-- Builds the sources and Javadoc JARs, signs every artifact and uploads them to the
+                 Central Portal, where a person releases the deployment (see README.md). -->
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.4.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.12.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <!-- Signs with the key in the MAVEN_GPG_KEY environment variable, and the
+                             passphrase in MAVEN_GPG_PASSPHRASE, without a GnuPG installation. -->
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.8</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <signer>bc</signer>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.12.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <!-- Publishing cannot be undone, so the deployment is only uploaded and
+                                 validated here, and released by a person in the Central Portal. -->
+                            <autoPublish>false</autoPublish>
+                            <waitUntil>validated</waitUntil>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

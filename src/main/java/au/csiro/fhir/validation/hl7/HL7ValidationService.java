@@ -14,6 +14,7 @@ import org.hl7.fhir.validation.cli.model.CliContext;
 import org.hl7.fhir.validation.instance.InstanceValidator;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.*;
@@ -26,7 +27,12 @@ import java.util.*;
 @Slf4j
 public class HL7ValidationService implements ValidationService {
 
-    private static final ThreadLocal<ValidationEngine> ENGINE = new ThreadLocal<>();
+    /**
+     * The engine of each thread, with the validator arguments it was built for. The HL7 validation
+     * engine is not thread safe, so each thread has its own. A thread keeps one engine at a time, as
+     * an engine holds all the packages it has loaded.
+     */
+    private static final ThreadLocal<CachedEngine> ENGINE = new ThreadLocal<>();
     private final ValidationEngine validationEngine;
     private final boolean showProgress;
     private final List<StructureDefinition> profiles;
@@ -65,8 +71,19 @@ public class HL7ValidationService implements ValidationService {
     }
 
     /**
-     * Returns a validation service for the given configuration, re-using the validation engine of
-     * the current thread if there is one.
+     * Returns the engine this service validates with.
+     *
+     * @return the validation engine
+     */
+    @Nonnull
+    ValidationEngine getValidationEngine() {
+        return validationEngine;
+    }
+
+    /**
+     * Returns a validation service for the given configuration. The validation engine of the
+     * current thread is re-used if it was built for the same validator arguments; otherwise a new
+     * engine is built and replaces it.
      *
      * @param config the validation configuration
      * @return the validation service
@@ -76,16 +93,36 @@ public class HL7ValidationService implements ValidationService {
     @Nonnull
     public static HL7ValidationService getOrCreate(@Nonnull final HL7ValidationConfig config) {
         final CliContext context = config.toCliContext();
-        // NOTE: This is currently assuming that the config does not change for a thread
-        // and always returns the exising engine with the initial config regardless of the input config
-        if (ENGINE.get() != null) {
+        ValidationEngine engine = reusableEngine(config.getValidatorArgs());
+        if (engine != null) {
             log.debug("Re-using thread-local ValidationEngine for config: {}", config);
         } else {
-            log.debug("Setting thread-local clone of ValidationEngine for config: {}", config);
-            ENGINE.set(createEngine(context));
+            log.debug("Creating thread-local ValidationEngine for config: {}", config);
+            engine = createEngine(context);
+            ENGINE.set(new CachedEngine(config.getValidatorArgs(), engine));
         }
-        return new HL7ValidationService(ENGINE.get(), config.isShowProgress(),
-                resolveProfiles(ENGINE.get(), context.getProfiles()));
+        return new HL7ValidationService(engine, config.isShowProgress(),
+                resolveProfiles(engine, context.getProfiles()));
+    }
+
+    /**
+     * Returns the engine of the current thread if it was built for the given validator arguments.
+     * Otherwise the engine is released, so that it can be collected while the next one is built.
+     *
+     * @param validatorArgs the validator arguments of the configuration
+     * @return the engine, or null if the thread has none for these arguments
+     */
+    @Nullable
+    private static ValidationEngine reusableEngine(@Nonnull final List<String> validatorArgs) {
+        final CachedEngine cached = ENGINE.get();
+        if (cached != null && cached.validatorArgs().equals(validatorArgs)) {
+            return cached.engine();
+        }
+        ENGINE.remove();
+        return null;
+    }
+
+    private record CachedEngine(@Nonnull List<String> validatorArgs, @Nonnull ValidationEngine engine) {
     }
 
     /**

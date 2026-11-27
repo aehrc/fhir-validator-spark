@@ -12,11 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests that the {@code --fhir-version} option selects the FHIR version used by the validator.
  *
- * <p>
- * This is a separate class from {@link ValidateAppTest} so that it runs in its own JVM: the
- * validation engine is cached per thread, and Spark executor threads that have already validated
- * against the default version would otherwise keep using it.
- *
  * @author John Grimes
  */
 class ValidateAppFhirVersionTest {
