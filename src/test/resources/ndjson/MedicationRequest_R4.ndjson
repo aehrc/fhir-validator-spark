@@ -1,0 +1,1 @@
+{"resourceType":"MedicationRequest","id":"r4-medication-request","status":"active","intent":"order","medicationCodeableConcept":{"text":"Paracetamol 500 mg tablet"},"subject":{"reference":"Patient/example"}}
