@@ -15,7 +15,10 @@ import pyarrow.parquet as pq
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
-JAR = os.environ.get("FHIR_VALIDATOR_JAR")
+# Resolved here, as the command runs from the root of the repository.
+JAR = os.environ.get("FHIR_VALIDATOR_JAR") and str(
+    Path(os.environ["FHIR_VALIDATOR_JAR"]).resolve()
+)
 COMMAND = str(Path(sys.executable).parent / "fhir-validator")
 MEDICATION_REQUEST = "src/test/resources/ndjson/MedicationRequest_R4.ndjson"
 MIMIC_PATIENT = "data/mimic-iv-demo-10/MimicPatient.ndjson"
