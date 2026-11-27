@@ -1,6 +1,0 @@
-#!/bin/sh
-ROOT_DIR="$(dirname "$0")/.."
-# The JAR is in lib/ in the binary distribution, and in target/ when built from source.
-JAR="$(ls "${ROOT_DIR}"/lib/fhir-validator-spark-*.jar "${ROOT_DIR}"/target/fhir-validator-spark-*.jar 2>/dev/null \
-  | grep -v -e '-sources\.jar$' -e '-javadoc\.jar$' | head -n 1)"
-spark-submit "${JAR}" "$@"

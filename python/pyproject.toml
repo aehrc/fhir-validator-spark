@@ -1,0 +1,47 @@
+[project]
+name = "fhir-validator-spark"
+# The Maven version of the validator JAR that this package uses by default is derived from this
+# version: 2.0.0.dev0 uses 2.0.0-SNAPSHOT and 2.0.0 uses 2.0.0. Keep it in step with pom.xml.
+version = "2.0.0.dev0"
+description = "Validates FHIR resources in NDJSON format with the HL7 FHIR Validator on Apache Spark, and reports the issues found."
+readme = "README.md"
+license = "Apache-2.0"
+# A copy of the LICENSE at the root of the repository, as the build only includes files in python/.
+license-files = ["LICENSE"]
+authors = [
+    { name = "John Grimes", email = "john.grimes@csiro.au" },
+    { name = "Piotr Szul", email = "piotr.szul@csiro.au" },
+]
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.5.1",
+    "duckdb>=2.0.1",
+    "jinja2>=3.1.6",
+    "markupsafe>=3.0.4",
+    "pyarrow>=26.0.1",
+    # The validator JAR is built for Spark 4.1 and Scala 2.13.
+    "pyspark>=4.1.0,<4.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/aehrc/fhir-validator-spark"
+Issues = "https://github.com/aehrc/fhir-validator-spark/issues"
+
+[project.scripts]
+fhir-validator = "fhir_validator_spark.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.10,<0.14"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff.lint]
+extend-select = ["B", "I", "UP"]

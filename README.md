@@ -6,45 +6,244 @@ This project provides tools for validating large sets of FHIR resources using Ap
 It supports validation of resources in NDJSON format
 with [HL7 FHIR Validator](https://github.com/hapifhir/org.hl7.fhir.core).
 
+It has two parts:
+
+- The `fhir-validator` command, which validates NDJSON files and reports the issues found. It is a Python package
+  that runs Spark through PySpark, so it needs no separate Spark installation.
+- A library for Spark, published to Maven Central, which the command uses and which can be called from Spark code.
+
 ## Prerequisites
 
 - Java 21
-- Spark 4.1.x, built for Scala 2.13
+- [uv](https://docs.astral.sh/uv/), to install the command
 - Maven, to build from source
-- Python 3.10 to 3.12
-- Pip
 
+## Installation
 
-
-## Installing the Project from the distribution
-
-The binary distribution of the project is available as a tar.gz  file in the GitHub releases.
-
-To install the project from the distribution tar.gz follow these steps:
-
-1. **Download the distribution tar.gz file**:
-   - Navigate to the [Releases](https://github.com/aehrc/fhir-validator-spark/releases) page of the project on GitHub.
-   - Download the latest release tar.gz file (e.g., `fhir-validator-spark-VERSION-dist.tar.gz`).
-
-2. **Extract the Tar.gz File**:
-   - Use the following command to extract the tar.gz file:
-     ```sh
-     tar -xzf fhir-validator-spark-VERSION-dist.tar.gz
-     ```
-
-3. **Navigate to the Extracted Directory**:
-   - Change to the directory created by extracting the tar.gz file:
-     ```sh
-     cd fhir-validator-spark-VERSION/
-     ```
-
-## Building the Project
-
-To build the project from sources, run the following command:
+Install the command with uv:
 
 ```sh
-mvn clean install
+uv tool install fhir-validator-spark
 ```
+
+The package is published to PyPI from version 2.0.0. Until then, or to use unreleased changes, install it from GitHub:
+
+```sh
+uv tool install "git+https://github.com/aehrc/fhir-validator-spark#subdirectory=python"
+```
+
+or from a checkout of this repository:
+
+```sh
+uv tool install ./python
+```
+
+`fhir-validator validate` resolves the validator JAR from Maven Central the first time it runs, at the version that
+matches the package, and caches it. `fhir-validator --version` shows both versions. A package installed from GitHub or
+a checkout has a development version (e.g. `2.0.0.dev0`), which uses the SNAPSHOT JAR (e.g. `2.0.0-SNAPSHOT`). That
+JAR is not on Maven Central. Either install it into the local Maven repository, which Spark also searches, with
+`mvn install`, or give the JAR built with `mvn package` with `--jar target/fhir-validator-spark-VERSION.jar`.
+
+## Validating FHIR resources
+
+The validation of FHIR resources is a two-step process:
+
+1. `fhir-validator validate` validates the resources and writes the results as a Parquet dataset.
+2. `fhir-validator report` generates an HTML report of the issues from the Parquet dataset.
+
+The examples are run from the root of this repository, which has sample data and its implementation guide.
+
+### Validating a single file
+
+`data/mimic-iv-demo-10` contains small samples of the MIMIC-IV demo resources in NDJSON format. To validate the
+patients against the MIMIC-IV FHIR IG:
+
+```sh
+fhir-validator validate data/mimic-iv-demo-10/MimicPatient.ndjson target/validation-patient \
+  --ig data/packages/kindlab.fhir.mimic/package.tgz
+```
+
+The results are written to the `target/validation-patient` directory. To generate a report that includes issues of
+all levels:
+
+```sh
+fhir-validator report target/validation-patient target/report-patient.html --min-level 0
+```
+
+Then open `target/report-patient.html` in a web browser. The "File Name" column of the report is the input file.
+
+### Validating a partitioned dataset
+
+`data/mimic-iv-demo-10_partitioned` contains the same samples, partitioned by `filename` in the Hive partitioning
+scheme. To validate all of them:
+
+```sh
+fhir-validator validate data/mimic-iv-demo-10_partitioned target/validation-partitioned \
+  --ig data/packages/kindlab.fhir.mimic/package.tgz
+fhir-validator report target/validation-partitioned target/report-partitioned.html --min-level 0
+```
+
+The "File Name" column of the report is the `filename` partition of the dataset.
+
+## Command reference
+
+`fhir-validator --help` lists the commands, and `fhir-validator COMMAND --help` lists the options of each.
+
+### fhir-validator validate
+
+```sh
+fhir-validator validate [OPTIONS] INPUT OUTPUT [-- VALIDATOR_ARG...]
+```
+
+Validates FHIR resources in NDJSON format with Apache Spark, using
+the [HL7 FHIR Validator](https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator).
+
+`INPUT` is an NDJSON file with a FHIR resource on each line, or a directory of such files. The directory can be
+partitioned with the Hive partitioning scheme on a `filename` column, e.g.:
+
+```
+dataset/
+     filename=MimicPatient/
+          part-00000.ndjson
+          part-00001.ndjson
+          ...
+      filename=MimicObservation/
+          part-00000.ndjson
+          part-00001.ndjson
+          ...
+      ...
+```
+
+For data that is not partitioned, the `filename` of each resource is `INPUT`.
+
+`OUTPUT` is a Parquet dataset of the resources for which the validator reports at least one issue, in the schema
+described in [Using the library with Spark](#using-the-library-with-spark). An existing dataset is replaced.
+
+The validation options are:
+
+| Option                 | Description                                                                      |
+|------------------------|----------------------------------------------------------------------------------|
+| `-v`, `--fhir-version` | FHIR version, defaults to `4.0.1`                                                |
+| `-i`, `--ig`           | Implementation guide to load (a package file, directory or `id#version`), repeatable |
+| `-l`, `--language`     | Language of the messages                                                         |
+| `-tx`, `--tx-server`   | Terminology server, defaults to none                                             |
+| `-p`, `--log-progress` | Log the progress of the validator in each resource                               |
+| `-d`, `--log-level`    | Spark log level, defaults to `WARN`                                              |
+
+Before version 2.0.0, `--ig` took several values (`--ig a.tgz b.tgz`). Repeat the option instead
+(`--ig a.tgz --ig b.tgz`).
+
+The Spark options are:
+
+| Option            | Description                                                                                   |
+|-------------------|-----------------------------------------------------------------------------------------------|
+| `--master`        | Spark master URL, defaults to `local[*]`, which runs Spark in this process with a thread per core |
+| `--driver-memory` | Memory of the Spark driver, defaults to `8g`                                                  |
+| `--conf`          | Spark configuration property as `KEY=VALUE`, repeatable; overrides the options above          |
+| `--jar`           | Validator JAR to use, instead of the one from Maven Central                                   |
+
+Each thread that runs validation builds its own validation engine, which holds the FHIR packages it has loaded. In
+local mode the threads run in the driver, which needs more memory than the Spark default of 1 GB. The default of
+8 GB is enough for 14 threads with the MIMIC IG loaded. With less memory, use fewer threads
+(e.g. `--master local[4]`). On a cluster, set the executor memory with `--conf spark.executor.memory=8g`.
+
+To run on a cluster, give its master URL, e.g.:
+
+```sh
+fhir-validator validate --master spark://spark-master:7077 --conf spark.executor.memory=8g \
+  hdfs:///data/fhir hdfs:///data/validation --ig hl7.fhir.au.core#1.0.0
+```
+
+The input, the output and any implementation guide files must be readable by the executors.
+
+The command runs the Spark that is installed with PySpark. If the `SPARK_HOME` environment variable is set, PySpark
+runs the Spark installation it points to instead, which must be Spark 4.1 built for Scala 2.13.
+
+#### Validator arguments
+
+Arguments given after `--` are passed to the argument parser of the HL7 FHIR validator, so `fhir-validator validate`
+accepts the same validation options as the validator version it is built with (6.3.10). See
+[Using the FHIR Validator](https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator) for the list of
+parameters. For example, to set the validation level to errors, allow any extension and report display mismatches as
+warnings:
+
+```sh
+fhir-validator validate data/mimic-iv-demo-10/MimicPatient.ndjson target/validation-patient \
+  -- -ig data/packages/kindlab.fhir.mimic/package.tgz -level errors -extension any -display-issues-are-warnings
+```
+
+To validate every resource against a profile, and to treat best practice recommendations as errors:
+
+```sh
+fhir-validator validate data/mimic-iv-demo-10/MimicPatient.ndjson target/validation-patient \
+  -- -ig data/packages/kindlab.fhir.mimic/package.tgz \
+  -profile http://mimic.mit.edu/fhir/mimic/StructureDefinition/mimic-patient -best-practice error
+```
+
+The validation options of `fhir-validator validate` are given to the validator as the equivalent validator
+arguments, ahead of the arguments after `--`. Where a validator option takes a single value, the last one wins, so an
+argument after `--` overrides the option.
+
+| Option           | Validator argument |
+|------------------|--------------------|
+| `--fhir-version` | `-version`         |
+| `--ig`           | `-ig`              |
+| `--language`     | `-language`        |
+| `--tx-server`    | `-tx`              |
+
+The validator defaults apply, except for two settings that would make the validator send network requests while it
+validates resources:
+
+- No terminology server is used (`-tx n/a`), where the validator would use `tx.fhir.org`. Use `--tx-server <url>` or
+  `-- -tx <url>` to use one.
+- The default resource fetcher is turned off (`-disable-default-resource-fetcher`), so canonical URLs that the loaded
+  packages do not define, such as a profile in `meta.profile`, are not fetched from the network. Load the packages
+  that define them with `-ig`. The validator has no argument to turn the fetcher back on, so this cannot be
+  overridden.
+
+The FHIR version defaults to R4 (`4.0.1`).
+
+Validator arguments that have no effect when validating individual resources in Spark are rejected with an error
+before validation starts. These are input files (the input is read by Spark), other validator modes such as
+`-convert`, `-compare` or `-snapshot`, output and log files such as `-output`, `-html-output` or `-txLog`, process
+settings such as `-proxy`, `-fhir-settings` or `-watch-mode`, and options that the validator only applies when it
+reads files itself (`-native`, `-do-native`, `-no-native` and `-show-times`). Arguments that the validator does not
+recognise are rejected in the same way. Option values are interpreted by the validator: for example, an unknown
+`-level` value is read as `hints`.
+
+Before version 2.0.0, the `validate-fhir` script always reported display mismatches in codings as warnings. They are
+now errors, which is the validator default; use `-- -display-issues-are-warnings` to report them as warnings. A
+terminology server given with `--tx-server` that cannot be reached now fails the validation, where it was previously
+ignored. The validator also loads the `hl7.terminology` and `hl7.fhir.uv.extensions` packages, as the validator
+command line does, so these must be in the FHIR package cache or downloadable when validation starts.
+
+See also:
+
+- <a href="https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator">HL7 FHIR Validator</a>
+- <a href="https://github.com/hapifhir/org.hl7.fhir.core">HL7 FHIR Core tools</a>
+
+### fhir-validator report
+
+```sh
+fhir-validator report [OPTIONS] INPUT OUTPUT
+```
+
+Writes an HTML report of the issues in the validation results in `INPUT` to `OUTPUT`. The issues are grouped by:
+
+- level
+- type
+- message identifier
+- filename
+
+Each group has an example (the message, the location of the issue and the JSON of a resource, with the column of the
+issue highlighted) and the number of issues.
+
+| Option              | Description                                                                                        |
+|---------------------|----------------------------------------------------------------------------------------------------|
+| `--min-level`       | Minimum level of the issues to include: information=1, warning=2, error=3, fatal=4; defaults to 3 |
+| `--exclude-message` | Leave out the messages that match this SQL `LIKE` pattern, e.g. `%narrative%`; repeatable          |
+| `--limit`           | Maximum number of rows in the report, defaults to all                                              |
+| `--partition-by-dir` | `INPUT` has a subdirectory for each filename (e.g. `INPUT/MimicPatient/`), rather than a `filename` column |
 
 ## Using the library with Spark
 
@@ -62,7 +261,8 @@ FHIR resources and an `HL7ValidationConfig`, and returns the validation results 
 - The result has one row for each resource for which the validator reports at least one issue. Resources without
   issues are left out. If the input has no `filename` column, `filename` is null in the result.
 
-The result has this schema, which is also the schema of the output of [validate-fhir](#validate-fhir):
+The result has this schema, which is also the schema of the output of
+[fhir-validator validate](#fhir-validator-validate):
 
 ```
 root
@@ -85,7 +285,8 @@ They are run from the root of this repository, which has the MIMIC demo data and
 
 ### spark-submit
 
-To run [validate-fhir](#validate-fhir) from the published JAR:
+To run the validation application in the JAR, `au.csiro.fhir.validation.cli.ValidateApp`, which takes the same
+validation options and [validator arguments](#validator-arguments) as `fhir-validator validate`:
 
 ```sh
 spark-submit --packages au.csiro.fhir:fhir-validator-spark:VERSION --driver-memory 8g \
@@ -164,209 +365,49 @@ spark = (
 )
 ```
 
-## Validating FHIR Resources
+## Building from source
 
-The validation of FHIR resources is a two-step process:
-
-1. Validate the FHIR resources using the command line application (e.g.: `validate-fhir`) to produce a parquet dataset
-   with the validation results.
-2. Generate a validation report that from the parquet validation results dataset using one of the provided python
-   scripts (e.g.: `validation-report-issues.py`).
-
-### Setting up the environment
-
-To set up the environment install the required python packages defined in the `env/requirements.txt` file into your
-python environment (conda, virtualenv, etc).
+To build the library and run its tests:
 
 ```sh
-pip install -r env/requirements.txt
-``` 
+mvn clean install
+```
 
-### Validating a single FHIR resource
-
-`data/mimic-iv-demo-10` contains a small samples of mimic-fhir-demo resources in NDJSON format.
-
-To validate a single FHIR resource (MimicPatient) against the MIMIC-FHIR IG, run the following command:
+The Python package is in the `python` directory. To lint it and run its tests against the JAR built from source:
 
 ```sh
-  bin/validate-fhir data/mimic-iv-demo-10/MimicPatient.ndjson target/validation-patient --ig data/packages/kindlab.fhir.mimic/package.tgz
-```  
-
-The validation results in parquest are stored in the `target/validation-patient` directory.
-
-To generate a validation report that includes all levels of issues, run the following command:
-
-```sh
-  bin/validation-report-issues.py target/validation-patient target/report-patient.html --min-level 0
+cd python
+uv run ruff check
+uv run ruff format --check
+FHIR_VALIDATOR_JAR=$(ls ../target/fhir-validator-spark-*.jar) uv run pytest
 ```
 
-Then open the `target/report-patient.html` file in a web browser to see the results.
-
-Please, note that the value of the "File name" column in the report corresponds to the input file name.
-
-### Validating  multiple FHIR resources
-
-`data/mimic-iv-demo-10_partitioned` contains a small samples of mimic-fhir-demo dataset partitioned
-by `filename` using the hive partitioning scheme.
-
-To validate the all resources in the `data/mimic-iv-demo-10_partitioned` directory, run the following command:
-
-```sh
-  bin/validate-fhir data/mimic-iv-demo-10_partitioned target/validation-result-partitioned
-```
-
-The validation results in parquest are stored in the `target/validation-result-partitioned` directory.
-
-To generate a validation report that includes all levels of issues, run the following command:
-
-```sh
-  bin/validation-report-issues.py target/validation-result-partitioned target/report-partitioned.html --min-level 0
-```
-
-Then open the `target/report-partitioned.html` file in a web browser to see the results.
-
-Please, note that the value of the "File name" column in the report corresponds to the `filename` partition in the
-dataset.
-
-## Command line applications
-
-### validate-fhir
-
-Command line application to validate large number of FHIR resources in ndjson format using
-Apache Spark for parallel processing
-and [HL7 FHIR Validator](https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator) for fhir validation.
-
-The input is a text file in ndjson format with each line containing a FHIR resource or a directory containing such
-ndjson files.
-Additionally, the intput directory can be partitioned using the hive style partitioning with the `filename` column,
-e.g.:
-
-```
-dataset/
-     filename=MimicPatient/
-          part-00000.ndjson
-          part-00001.ndjson
-          ...
-      filename=MimicObservation/
-          part-00000.ndjson
-          part-00001.ndjson
-          ...
-      ...
-```
-
-For non-partitioned data the `filename` column is added to the dataset with the value of the input file.
-
-The output is a parquet dataset of the resources for which the validator reports at least one issue, in the schema
-described in [Using the library with Spark](#using-the-library-with-spark).
-
-To see the available options, run the following command:
-
-```sh
-  bin/validate-fhir --help
-```
-
-#### Validator arguments
-
-Arguments given after `--` are passed to the argument parser of the HL7 FHIR validator, so `validate-fhir` accepts the
-same validation options as the validator version it is built with (6.3.10). See
-[Using the FHIR Validator](https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator) for the list of
-parameters. For example, to report only errors, allow any extension and report display mismatches as warnings:
-
-```sh
-  bin/validate-fhir data/mimic-iv-demo-10/MimicPatient.ndjson target/validation-patient \
-    -- -ig data/packages/kindlab.fhir.mimic/package.tgz -level errors -extension any -display-issues-are-warnings
-```
-
-To validate every resource against a profile, and to treat best practice recommendations as errors:
-
-```sh
-  bin/validate-fhir data/mimic-iv-demo-10/MimicPatient.ndjson target/validation-patient \
-    -- -ig data/packages/kindlab.fhir.mimic/package.tgz \
-    -profile http://mimic.mit.edu/fhir/mimic/StructureDefinition/mimic-patient -best-practice error
-```
-
-The options of `validate-fhir` itself are given to the validator as the equivalent validator arguments, ahead of the
-arguments after `--`. Where a validator option takes a single value, the last one wins, so an argument after `--`
-overrides the `validate-fhir` option.
-
-| `validate-fhir` option | Validator argument |
-|------------------------|--------------------|
-| `--fhir-version`       | `-version`         |
-| `--ig`                 | `-ig`              |
-| `--language`           | `-language`        |
-| `--tx-server`          | `-tx`              |
-
-The validator defaults apply, except for two settings that would make the validator send network requests while it
-validates resources:
-
-- No terminology server is used (`-tx n/a`), where the validator would use `tx.fhir.org`. Use `--tx-server <url>` or
-  `-- -tx <url>` to use one.
-- The default resource fetcher is turned off (`-disable-default-resource-fetcher`), so canonical URLs that the loaded
-  packages do not define, such as a profile in `meta.profile`, are not fetched from the network. Load the packages
-  that define them with `-ig`. The validator has no argument to turn the fetcher back on, so this cannot be
-  overridden.
-
-The FHIR version defaults to R4 (`4.0.1`).
-
-Validator arguments that have no effect when validating individual resources in Spark are rejected with an error
-before validation starts. These are input files (the input is read by Spark), other validator modes such as
-`-convert`, `-compare` or `-snapshot`, output and log files such as `-output`, `-html-output` or `-txLog`, process
-settings such as `-proxy`, `-fhir-settings` or `-watch-mode`, and options that the validator only applies when it
-reads files itself (`-native`, `-do-native`, `-no-native` and `-show-times`). Arguments that the validator does not
-recognise are rejected in the same way. Option values are interpreted by the validator: for example, an unknown
-`-level` value is read as `hints`.
-
-Before version 2.0.0, `validate-fhir` always reported display mismatches in codings as warnings. They are now
-errors, which is the validator default; use `-- -display-issues-are-warnings` to report them as warnings. A
-terminology server given with `--tx-server` that cannot be reached now fails the validation, where it was previously
-ignored. The validator also loads the `hl7.terminology` and `hl7.fhir.uv.extensions` packages, as the validator
-command line does, so these must be in the FHIR package cache or downloadable when validation starts.
-
-The application is implemented in the `au.csiro.fhir.validation.cli.ValidateApp` class.
-
-See also:
-
-- <a href="https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator">HL7 FHIR Validator</a>
-- <a href="https://github.com/hapifhir/org.hl7.fhir.core">HL7 FHIR Core tools</a>
-
-## Report generation
-
-
-### validation-report-issues.py
-
-Generates a single report file with  the issues are aggregated by: 
-- level
-- type
-- message_id
-- filename
-
-For each group an example is provided (including the actual message, the location
-of the issue and the json representation of the resource) as well as the count of the issues.
-
-Command line options can be used to:
-- filter the issues by level (`--min-level`)
-- limit the total number of issues in the report  (`--limit`)
-- exclude messages matching the given SQL `LIKE` pattern(s) (`--exclude-message`)
-
-To see the available options, run the following command:
-```sh
-  bin/validation-report-issues.py --help
-```
+Without `FHIR_VALIDATOR_JAR`, the tests that run Spark are skipped.
 
 ## Releasing
 
-1. Set the release version in `pom.xml` (e.g. `2.0.0`), commit it and push a tag named after it (e.g. `v2.0.0`).
+1. Set the release version in `pom.xml` (e.g. `2.0.0`) and in `python/pyproject.toml`, commit it and push a tag named
+   after it (e.g. `v2.0.0`). The test suite checks that the two versions match.
 2. The [Draft Release](.github/workflows/draft-release.yml) workflow checks that the version is not a SNAPSHOT,
-   creates a draft GitHub release with the binary distribution, and uploads the signed artifacts to the
+   creates a draft GitHub release, and uploads the signed artifacts to the
    [Central Portal](https://central.sonatype.com/publishing/deployments), where it waits until they are validated.
 3. Check the deployment in the Central Portal and publish it. Publishing to Maven Central cannot be undone: a
    published version can never be changed or removed.
-4. Publish the draft GitHub release.
+4. The workflow then waits for approval to publish the Python package to PyPI. Approve it only once the JAR is
+   available on Maven Central, as the package uses the JAR of the same version. The workflow fails if the package
+   version does not match the tag. A version published to PyPI cannot be published again.
+5. Publish the draft GitHub release.
+6. Set the next development version in `pom.xml` (e.g. `2.1.0-SNAPSHOT`) and `python/pyproject.toml`
+   (e.g. `2.1.0.dev0`).
 
 The workflow needs these repository secrets: `MAVEN_CENTRAL_USERNAME` and `MAVEN_CENTRAL_PASSWORD` (a Central Portal
 user token), `GPG_PRIVATE_KEY` (an ASCII-armoured private key) and `GPG_PASSPHRASE`. To build the release artifacts
 locally without uploading them, run `mvn -Prelease verify` with the key and passphrase in the `MAVEN_GPG_KEY` and
 `MAVEN_GPG_PASSPHRASE` environment variables.
+
+Publishing to PyPI uses [trusted publishing](https://docs.pypi.org/trusted-publishers/), with no secret. It needs a
+GitHub environment named `pypi` with required reviewers, and a trusted publisher for the `fhir-validator-spark`
+project on PyPI for this repository, the `draft-release.yml` workflow and the `pypi` environment.
 
 ## Important note
 
