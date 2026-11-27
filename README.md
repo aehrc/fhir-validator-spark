@@ -156,6 +156,9 @@ fhir-validator validate --master spark://spark-master:7077 --conf spark.executor
 
 The input, the output and any implementation guide files must be readable by the executors.
 
+The command runs the Spark that is installed with PySpark. If the `SPARK_HOME` environment variable is set, PySpark
+runs the Spark installation it points to instead, which must be Spark 4.1 built for Scala 2.13.
+
 #### Validator arguments
 
 Arguments given after `--` are passed to the argument parser of the HL7 FHIR validator, so `fhir-validator validate`
