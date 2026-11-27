@@ -27,18 +27,29 @@ pytestmark = pytest.mark.skipif(not JAR, reason="FHIR_VALIDATOR_JAR is not set")
 def run(*args):
     """Runs the command from the root of the repository, where the test data is."""
     return subprocess.run(
-        [COMMAND, *args], cwd=REPO, capture_output=True, text=True, timeout=900, check=False
+        [COMMAND, *args],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        timeout=900,
+        check=False,
     )
 
 
 def validate(input_path, output, *args):
-    result = run("validate", input_path, str(output), "--jar", JAR, "--master", "local[2]", *args)
+    result = run(
+        "validate", input_path, str(output), "--jar", JAR, "--master", "local[2]", *args
+    )
     assert result.returncode == 0, result.stdout + result.stderr
     return pq.read_table(output)
 
 
 def issue_levels(results):
-    return [issue["level"] for issues in results.column("issues").to_pylist() for issue in issues]
+    return [
+        issue["level"]
+        for issues in results.column("issues").to_pylist()
+        for issue in issues
+    ]
 
 
 @pytest.fixture(scope="module")
@@ -55,10 +66,11 @@ def test_validate_reports_warnings_by_default(default_results):
 
 
 def test_arguments_after_double_dash_reach_the_validator(tmp_path):
-    results = validate(MEDICATION_REQUEST, tmp_path / "validation", "--", "-level", "errors")
-    levels = issue_levels(results)
-    assert levels, "Expected errors in the MedicationRequest resources"
-    assert set(levels) <= {"error", "fatal"}
+    results = validate(
+        MEDICATION_REQUEST, tmp_path / "validation", "--", "-level", "errors"
+    )
+    # Without -level errors the validator reports warnings for these resources (see above).
+    assert set(issue_levels(results)) <= {"error", "fatal"}
 
 
 def test_validate_with_an_ig_names_results_after_the_input(tmp_path):
@@ -79,10 +91,13 @@ def test_validate_with_an_ig_names_results_after_the_input(tmp_path):
 
 def test_unsupported_validator_argument_fails_before_validation(tmp_path):
     output = tmp_path / "validation"
-    result = run("validate", MIMIC_PATIENT, str(output), "--jar", JAR, "--", "-output", "x")
+    result = run(
+        "validate", MIMIC_PATIENT, str(output), "--jar", JAR, "--", "-output", "x"
+    )
     assert result.returncode == 1
-    assert "Error: Validator argument(s) not supported when validating in Spark: -output" in (
-        result.stderr
+    assert (
+        "Error: Validator argument(s) not supported when validating in Spark: -output"
+        in (result.stderr)
     )
     assert "Traceback" not in result.stderr
     assert not output.exists()

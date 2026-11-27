@@ -19,7 +19,9 @@ PACKAGE_VERSION = version("fhir-validator-spark")
 def runs(monkeypatch):
     """Replaces the validation with a recorder of the arguments it is called with."""
     calls = []
-    monkeypatch.setattr(cli, "run_validation", lambda *args, **kwargs: calls.append((args, kwargs)))
+    monkeypatch.setattr(
+        cli, "run_validation", lambda *args, **kwargs: calls.append((args, kwargs))
+    )
     return calls
 
 
@@ -86,7 +88,16 @@ def test_validate_accepts_the_options_of_validate_fhir(runs):
 
 def test_validate_forwards_arguments_after_double_dash(runs):
     result = invoke(
-        "validate", "in.ndjson", "out", "--ig", "a.tgz", "--", "-level", "errors", "-extension", "any"
+        "validate",
+        "in.ndjson",
+        "out",
+        "--ig",
+        "a.tgz",
+        "--",
+        "-level",
+        "errors",
+        "-extension",
+        "any",
     )
     assert result.exit_code == 0, result.output
     assert runs[0][1]["validator_args"] == [
@@ -157,7 +168,9 @@ def test_conf_without_value_is_rejected(runs):
 
 
 def test_missing_jar_is_rejected(runs, tmp_path):
-    result = invoke("validate", "in.ndjson", "out", "--jar", str(tmp_path / "missing.jar"))
+    result = invoke(
+        "validate", "in.ndjson", "out", "--jar", str(tmp_path / "missing.jar")
+    )
     assert result.exit_code == 2
     assert "does not exist" in result.output
     assert runs == []
@@ -168,13 +181,16 @@ def test_missing_jar_is_rejected(runs, tmp_path):
 
 def test_validation_error_is_reported_without_a_traceback(monkeypatch):
     def fail(*args, **kwargs):
-        raise ValueError("Validator argument(s) not supported when validating in Spark: -output")
+        raise ValueError(
+            "Validator argument(s) not supported when validating in Spark: -output"
+        )
 
     monkeypatch.setattr(cli, "run_validation", fail)
     result = invoke("validate", "in.ndjson", "out", "--", "-output", "x")
     assert result.exit_code == 1
-    assert "Error: Validator argument(s) not supported when validating in Spark: -output" in (
-        result.output
+    assert (
+        "Error: Validator argument(s) not supported when validating in Spark: -output"
+        in (result.output)
     )
     assert "Traceback" not in result.output
 

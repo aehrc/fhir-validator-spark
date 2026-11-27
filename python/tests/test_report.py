@@ -71,7 +71,9 @@ def results(tmp_path):
             "issues": [STATUS_FATAL],
         },
     ]
-    pq.write_table(pa.Table.from_pylist(rows, schema=RESULTS), output / "part-00000.parquet")
+    pq.write_table(
+        pa.Table.from_pylist(rows, schema=RESULTS), output / "part-00000.parquet"
+    )
     # Spark also writes these, which are not Parquet files.
     (output / "_SUCCESS").touch()
     (output / ".part-00000.parquet.crc").write_bytes(b"crc")
@@ -81,7 +83,9 @@ def results(tmp_path):
 def report(input_dir, tmp_path, *options):
     """Runs the report command and returns the rows of the issues table, as lists of cells."""
     output = tmp_path / "report.html"
-    result = CliRunner().invoke(cli.main, ["report", str(input_dir), str(output), *options])
+    result = CliRunner().invoke(
+        cli.main, ["report", str(input_dir), str(output), *options]
+    )
     assert result.exit_code == 0, result.output
     html = output.read_text()
     rows = re.findall(r"<tr>(.*?)</tr>", html, re.DOTALL)[1:]
@@ -153,7 +157,12 @@ def test_exclude_message_pattern_with_an_apostrophe(results, tmp_path):
 
 def test_exclude_message_can_be_repeated(results, tmp_path):
     _, rows = report(
-        results, tmp_path, "--exclude-message", "%name%", "--exclude-message", "Unknown%"
+        results,
+        tmp_path,
+        "--exclude-message",
+        "%name%",
+        "--exclude-message",
+        "Unknown%",
     )
     assert column(rows, MESSAGE_ID) == ["ID"]
 
@@ -170,7 +179,9 @@ def test_partition_by_dir_takes_the_filename_from_the_directory(tmp_path):
         directory = tmp_path / "validation" / name
         directory.mkdir(parents=True)
         rows = [{"resource": "{}", "issues": [ID_INVALID]}]
-        pq.write_table(pa.Table.from_pylist(rows, schema=schema), directory / "part.parquet")
+        pq.write_table(
+            pa.Table.from_pylist(rows, schema=schema), directory / "part.parquet"
+        )
     _, rows = report(tmp_path / "validation", tmp_path, "--partition-by-dir")
     assert sorted(column(rows, FILENAME)) == ["MimicEncounter", "MimicPatient"]
 
