@@ -1,20 +1,18 @@
 package au.csiro.fhir.validation.cli;
 
-import au.csiro.fhir.utils.Streams;
 import au.csiro.fhir.validation.hl7.HL7ValidationConfig;
-import au.csiro.fhir.validation.ValidationResult;
-import au.csiro.fhir.validation.hl7.HL7ValidationService;
-import lombok.*;
-import org.apache.spark.sql.*;
+import au.csiro.fhir.validation.spark.ValidationApi;
+import lombok.ToString;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.functions;
 import org.hl7.fhir.validation.cli.utils.Params;
 import picocli.CommandLine;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -40,21 +38,8 @@ import java.util.stream.Stream;
  * For non-partitioned data the `filename` column is added to the dataset with the value of the input file.
  *
  * <p>
- * The output is a parquet dataset with the following schema:
- * <pre>
- *     root
- *     |-- resource: string (nullable = false)  // FHIR resource
- *     |-- filename: string (nullable = fase)  // filename of the resource
- *     |-- issues: array (nullable = true)
- *     |    |-- element: struct (containsNull = false)
- *     |    |    |-- level: string (nullable = false) // Issue severity (information, warning, error, fatal)
- *     |    |    |-- type: string (nullable = false) // Issue type (according to the validator classification)
- *     |    |    |-- message: string (nullable = false) // Issue message
- *     |    |    |-- messageId: string (nullable = true) // Issue message id
- *     |    |    |-- location: string (nullable = true) // Issue location, e.g. the fhirpath expression
- *     |    |    |-- line: integer (nullable = true) // Issue line number
- *     |    |    |-- col: integer(nullable = true) // Issue column number
- *  </pre>
+ * The output is a parquet dataset of the resources for which the validator reports at least one
+ * issue, in the schema described in {@link ValidationApi}, which implements the validation.
  *
  * <p>
  * Arguments after {@code --} are passed to the argument parser of the HL7 FHIR validator, after the
@@ -69,7 +54,8 @@ import java.util.stream.Stream;
 @ToString
 public class ValidateApp implements Runnable {
 
-    public static final String FILENAME_COLUMN = "filename";
+    private static final String FILENAME_COLUMN = ValidationApi.FILENAME_COLUMN;
+
     @CommandLine.Parameters(index = "0", description = "Input file.")
     String inputFile;
 
@@ -130,55 +116,6 @@ public class ValidateApp implements Runnable {
                 .build();
     }
 
-
-    @Data
-    @NoArgsConstructor
-    public static class ValueWithFile implements Serializable {
-        @Nonnull
-        String value;
-        @Nonnull
-        String filename;
-    }
-
-    @Value
-    public static class ResourceWithIssues implements Serializable {
-        @Nonnull
-        String resource;
-
-        @Nonnull
-        String filename;
-
-        @Nullable
-        List<ValidationResult.Issue> issues;
-
-
-        boolean hasIssues() {
-            return issues != null;
-        }
-
-        @Nonnull
-        static ResourceWithIssues of(@Nonnull final String resource, @Nonnull final String filename, @Nonnull final ValidationResult validationResult) {
-            return new ResourceWithIssues(resource, filename, validationResult.getIssues().isEmpty() ? null : validationResult.getIssues());
-        }
-    }
-
-    @AllArgsConstructor
-    static class Validator implements Serializable {
-
-        @Nonnull
-        private final HL7ValidationConfig config;
-
-        @Nonnull
-        private Iterator<ResourceWithIssues> validatePartition(@Nonnull final Iterator<ValueWithFile> input) {
-            final HL7ValidationService validationService = HL7ValidationService.getOrCreate(config);
-            return Streams.streamOf(input)
-                    .map(s -> ResourceWithIssues.of(s.getValue(), s.getFilename(),
-                            validationService.validateJson(s.getValue().getBytes(StandardCharsets.UTF_8))))
-                    .filter(ResourceWithIssues::hasIssues)
-                    .iterator();
-        }
-    }
-
     public void run() {
         long startTime = System.currentTimeMillis();
         System.out.println("FHIR Validator: " + this);
@@ -196,19 +133,17 @@ public class ValidateApp implements Runnable {
         if (!debugLevel.isEmpty()) {
             sparkSession.sparkContext().setLogLevel(debugLevel);
         }
-        final Validator validator = new Validator(config);
         System.out.println("Validating: " + inputFile + " and writing to: " + outputFile);
         final Dataset<Row> inputDF = sparkSession.read().text(inputFile);
-        final Dataset<ValueWithFile> ndjsonDatset;
+        final Dataset<Row> ndjson;
         if (Stream.of(inputDF.columns()).noneMatch(FILENAME_COLUMN::equals)) {
             System.out.println("Setting `filename` column to:" + inputFile);
-            ndjsonDatset = inputDF.withColumn(FILENAME_COLUMN, functions.lit(inputFile)).as(Encoders.bean(ValueWithFile.class));
+            ndjson = inputDF.withColumn(FILENAME_COLUMN, functions.lit(inputFile));
         } else {
             System.out.println("Using `filename` column present in the dataset.");
-            ndjsonDatset = inputDF.as(Encoders.bean(ValueWithFile.class));
+            ndjson = inputDF;
         }
-        final Dataset<ResourceWithIssues> result = ndjsonDatset.mapPartitions(validator::validatePartition, Encoders.bean(ResourceWithIssues.class));
-        result.toDF().write().mode(SaveMode.Overwrite).parquet(outputFile);
+        ValidationApi.validate(ndjson, config).write().mode(SaveMode.Overwrite).parquet(outputFile);
         long endTime = System.currentTimeMillis();
         System.out.printf("Elapsed time: %.3f s\n", (endTime - startTime) / 1000.0);
     }

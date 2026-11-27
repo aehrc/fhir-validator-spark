@@ -13,10 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests that the {@code -profile} validator argument validates each resource against the given
  * profile.
  *
- * <p>
- * This is a separate class from {@link HL7ValidationServiceTest} so that it runs in its own JVM: the
- * validation engine is cached per thread regardless of configuration.
- *
  * @author John Grimes
  */
 class HL7ValidationServiceProfileTest {

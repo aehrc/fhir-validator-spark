@@ -12,11 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests that validator arguments given after {@code --} reach the validator.
  *
- * <p>
- * This is a separate class from {@link ValidateAppTest} so that it runs in its own JVM: the
- * validation engine is cached per thread, and Spark executor threads that have already validated
- * with the default configuration would otherwise keep using it.
- *
  * @author John Grimes
  */
 class ValidateAppValidatorArgsTest {
