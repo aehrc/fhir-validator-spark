@@ -148,6 +148,7 @@ public class ValidateApp implements Runnable {
             sparkSession.sparkContext().setLogLevel(debugLevel);
         }
         final HL7ValidationConfig config = HL7ValidationConfig.builder()
+                .version(fhirVersion)
                 .txSever(txServer)
                 .language(language)
                 .igs(igs)
