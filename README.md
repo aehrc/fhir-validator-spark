@@ -164,7 +164,8 @@ runs the Spark installation it points to instead, which must be Spark 4.1 built 
 Arguments given after `--` are passed to the argument parser of the HL7 FHIR validator, so `fhir-validator validate`
 accepts the same validation options as the validator version it is built with (6.3.10). See
 [Using the FHIR Validator](https://confluence.hl7.org/display/FHIR/Using+the+FHIR+Validator) for the list of
-parameters. For example, to report only errors, allow any extension and report display mismatches as warnings:
+parameters. For example, to set the validation level to errors, allow any extension and report display mismatches as
+warnings:
 
 ```sh
 fhir-validator validate data/mimic-iv-demo-10/MimicPatient.ndjson target/validation-patient \
