@@ -31,6 +31,14 @@ public class HL7ValidationService implements ValidationService {
     private final boolean showProgress;
     private final List<StructureDefinition> profiles;
 
+    /**
+     * Creates a validation service.
+     *
+     * @param validationEngine the engine to validate with
+     * @param showProgress whether the validator logs its progress through each resource
+     * @param profiles the profiles to validate each resource against, in addition to those it
+     * declares
+     */
     public HL7ValidationService(@Nonnull final ValidationEngine validationEngine, boolean showProgress,
                                 @Nonnull final List<StructureDefinition> profiles) {
         this.validationEngine = validationEngine;

@@ -130,7 +130,9 @@ class HL7ValidationConfigTest {
             "-mode", "-src-lang", "-tgt-lang", "-output-style",
             // process settings that have no effect inside Spark
             "-proxy", "-https-proxy", "-auth", "-fhir-settings", "-watch-mode", "-watch-scan-delay",
-            "-watch-settle-time", "-x"})
+            "-watch-settle-time", "-x",
+            // options that only take effect when the validator reads files
+            "-native", "-show-times", "-do-native", "-no-native"})
     void unsupportedOptionIsRejected(final String option) {
         final IllegalArgumentException e = rejected(option, "value");
         assertTrue(e.getMessage().contains(option), e.getMessage());

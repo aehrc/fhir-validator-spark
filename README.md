@@ -204,16 +204,19 @@ validates resources:
 
 The FHIR version defaults to R4 (`4.0.1`).
 
-Validator arguments that have no meaning when validating individual resources in Spark are rejected with an error
+Validator arguments that have no effect when validating individual resources in Spark are rejected with an error
 before validation starts. These are input files (the input is read by Spark), other validator modes such as
-`-convert`, `-compare` or `-snapshot`, output and log files such as `-output`, `-html-output` or `-txLog`, and
-process settings such as `-proxy`, `-fhir-settings` or `-watch-mode`. Arguments that the validator does not
-recognise are rejected in the same way.
+`-convert`, `-compare` or `-snapshot`, output and log files such as `-output`, `-html-output` or `-txLog`, process
+settings such as `-proxy`, `-fhir-settings` or `-watch-mode`, and options that the validator only applies when it
+reads files itself (`-native`, `-do-native`, `-no-native` and `-show-times`). Arguments that the validator does not
+recognise are rejected in the same way. Option values are interpreted by the validator: for example, an unknown
+`-level` value is read as `hints`.
 
 Before version 2.0.0, `validate-fhir` always reported display mismatches in codings as warnings. They are now
-errors, which is the validator default; use `-- -display-issues-are-warnings` to report them as warnings. The
-validator also loads the `hl7.terminology` and `hl7.fhir.uv.extensions` packages, as the validator command line
-does, so these must be in the FHIR package cache or downloadable when validation starts.
+errors, which is the validator default; use `-- -display-issues-are-warnings` to report them as warnings. A
+terminology server given with `--tx-server` that cannot be reached now fails the validation, where it was previously
+ignored. The validator also loads the `hl7.terminology` and `hl7.fhir.uv.extensions` packages, as the validator
+command line does, so these must be in the FHIR package cache or downloadable when validation starts.
 
 The application is implemented in the `au.csiro.fhir.validation.cli.ValidateApp` class.
 

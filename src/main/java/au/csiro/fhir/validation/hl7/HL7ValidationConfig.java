@@ -47,8 +47,9 @@ public class HL7ValidationConfig implements Serializable {
             "-disable-default-resource-fetcher");
 
     /**
-     * Arguments that the validator accepts but that have no meaning when validating individual
-     * resources within Spark: other modes, inputs and outputs, and process-wide settings.
+     * Arguments that the validator accepts but that have no effect when validating individual
+     * resources within Spark: other modes, inputs and outputs, process-wide settings, and options
+     * that the validator only applies when it reads files itself.
      */
     private static final Set<String> UNSUPPORTED_ARGS = Set.of(
             // other modes
@@ -59,7 +60,9 @@ public class HL7ValidationConfig implements Serializable {
             "-mode", "-src-lang", "-tgt-lang", "-output-style",
             // process settings
             "-proxy", "-https-proxy", "-auth", "-fhir-settings", "-watch-mode", "-watch-scan-delay",
-            "-watch-settle-time");
+            "-watch-settle-time",
+            // options that only take effect when the validator reads files
+            "-native", "-show-times", "-do-native", "-no-native");
 
     /**
      * Prefix of the arguments that the validator skips together with the argument that follows.
@@ -117,7 +120,10 @@ public class HL7ValidationConfig implements Serializable {
         } catch (final ArrayIndexOutOfBoundsException e) {
             throw new IllegalArgumentException("Validator argument "
                     + validatorArgs.get(validatorArgs.size() - 1) + " requires a value", e);
+        } catch (final VirtualMachineError e) {
+            throw e;
         } catch (final Exception | Error e) {
+            // The validator reports invalid arguments by throwing Error or an exception.
             throw new IllegalArgumentException("Invalid validator arguments: " + e.getMessage(), e);
         }
 
