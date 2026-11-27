@@ -2,6 +2,7 @@
 # - Verifies that maven project version is a release version
 # - Creates a draft release
 # - Uploads the release to the Maven Central Portal, where it waits to be released by a person
+# - Publishes the Python package to PyPI, once a person approves the pypi environment
 # This is only run when a version tag is pushed.
 
 name: Draft Release
@@ -74,3 +75,35 @@ jobs:
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           MAVEN_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+   publish-pypi:
+    name: Publish to PyPI
+    # The draft release job checks that the version is a release version, and the JAR must have
+    # been uploaded to the Central Portal.
+    needs: publish-maven-central
+    runs-on: ubuntu-latest
+    # Required reviewers on this environment hold the job until the JAR that the package uses is
+    # released on Maven Central (see README.md). The PyPI trusted publisher trusts this
+    # environment of this workflow.
+    environment: pypi
+    permissions:
+      id-token: write
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.4.0
+      - name: Check that the package version matches the tag
+        run: |
+          version="$(uv version --short)"
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+              echo "Package version ${version} does not match tag ${GITHUB_REF_NAME}"
+              exit 1
+          fi
+      - name: Build the package
+        run: uv build
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always
