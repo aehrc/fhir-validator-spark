@@ -65,6 +65,16 @@ public class HL7ValidationService implements ValidationService {
     }
 
     /**
+     * Returns the engine this service validates with.
+     *
+     * @return the validation engine
+     */
+    @Nonnull
+    ValidationEngine getValidationEngine() {
+        return validationEngine;
+    }
+
+    /**
      * Returns a validation service for the given configuration, re-using the validation engine of
      * the current thread if there is one.
      *

@@ -1,11 +1,22 @@
 package au.csiro.fhir.validation.cli;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.StructType;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Stream;
 
+import static au.csiro.fhir.validation.spark.ValidationApiTest.RESULT_SCHEMA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,6 +52,22 @@ class ValidateAppTest {
                 .collectAsList();
     }
 
+    /**
+     * Reads the Spark schema that Spark stores in the footer of a Parquet file of an output
+     * dataset. Reading the dataset back with Spark would make every column nullable.
+     */
+    static StructType writtenSchema(final String output) throws IOException {
+        final Path file;
+        try (Stream<Path> files = Files.list(Paths.get(output))) {
+            file = files.filter(p -> p.toString().endsWith(".parquet")).findFirst().orElseThrow();
+        }
+        try (ParquetFileReader reader = ParquetFileReader.open(HadoopInputFile.fromPath(
+                new org.apache.hadoop.fs.Path(file.toUri()), new Configuration()))) {
+            return (StructType) DataType.fromJson(reader.getFooter().getFileMetaData().getKeyValueMetaData()
+                    .get("org.apache.spark.sql.parquet.row.metadata"));
+        }
+    }
+
     @Test
     void defaultReportsWarnings() {
         // Control for ValidateAppValidatorArgsTest: with the default validation level the
@@ -55,18 +82,23 @@ class ValidateAppTest {
     }
 
     @Test
-    void testSingleFile() {
+    void testSingleFile() throws IOException {
         System.setProperty("spark.master", "local[*]");
-        int exitCode = ValidateApp.execute(new String[]{"data/mimic-iv-demo-10/MimicPatient.ndjson", "target/MimicPatient-validation.parquet","-i", "data/packages/kindlab.fhir.mimic/package.tgz", "-p", "-d", "WARN"});
+        final String output = "target/MimicPatient-validation.parquet";
+        int exitCode = ValidateApp.execute(new String[]{"data/mimic-iv-demo-10/MimicPatient.ndjson", output, "-i", "data/packages/kindlab.fhir.mimic/package.tgz", "-p", "-d", "WARN"});
         assertEquals(0, exitCode);
+        // The output schema is part of the contract with the report scripts.
+        assertEquals(RESULT_SCHEMA, writtenSchema(output));
     }
 
 
     @Test
-    void testPartitionedDataset() {
+    void testPartitionedDataset() throws IOException {
         System.setProperty("spark.master", "local[*]");
-        int exitCode = ValidateApp.execute(new String[]{"data/mimic-iv-demo-10_partitioned", "target/MimicDemo-validation.parquet","-i", "data/packages/kindlab.fhir.mimic/package.tgz", "-p", "-d", "WARN"});
+        final String output = "target/MimicDemo-validation.parquet";
+        int exitCode = ValidateApp.execute(new String[]{"data/mimic-iv-demo-10_partitioned", output, "-i", "data/packages/kindlab.fhir.mimic/package.tgz", "-p", "-d", "WARN"});
         assertEquals(0, exitCode);
+        assertEquals(RESULT_SCHEMA, writtenSchema(output));
     }
 
     @Test
