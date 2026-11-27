@@ -126,8 +126,22 @@ def run_validation(
     builder = SparkSession.builder
     for key, value in spark_conf.items():
         builder = builder.config(key, value)
-    spark = builder.getOrCreate()
     try:
+        spark = builder.getOrCreate()
+    except Exception as e:
+        # The cause is in the output of the JVM above; the Python exception adds a traceback.
+        message = str(e).strip()
+        cause = message.splitlines()[0].rstrip(".") if message else type(e).__name__
+        raise ValueError(
+            f"Spark did not start ({cause}). See the output above. The usual causes are "
+            "that Java 21 is not found, an invalid Spark option, or a validator JAR that "
+            "cannot be resolved: a development version of this package needs `mvn install` "
+            "or --jar."
+        ) from e
+    try:
+        # Spark ignores a level equal to the current one, and PySpark only shows warnings until
+        # the level changes, so the level is changed twice for it to take effect.
+        spark.sparkContext.setLogLevel("OFF")
         spark.sparkContext.setLogLevel(log_level)
         jvm = spark.sparkContext._jvm
         config = (

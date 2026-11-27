@@ -206,7 +206,9 @@ def validate(
     help="Leave out the messages that match this SQL LIKE pattern. Repeatable.",
 )
 @click.option(
-    "--limit", type=int, help="Maximum number of rows in the report. Defaults to all."
+    "--limit",
+    type=click.IntRange(min=1),
+    help="Maximum number of rows in the report. Defaults to all.",
 )
 def report(input_dir, output_file, partition_by_dir, min_level, exclude_message, limit):
     """Writes an HTML report of the issues in the validation results in INPUT to OUTPUT.
