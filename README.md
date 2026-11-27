@@ -8,10 +8,10 @@ with [HL7 FHIR Validator](https://github.com/hapifhir/org.hl7.fhir.core).
 
 ## Prerequisites
 
-- Java 11
-- Spark 3.4.x
+- Java 21
+- Spark 4.1.x, built for Scala 2.13
 - Maven
-- Python 3.x
+- Python 3.10 to 3.12
 - Pip
 
 

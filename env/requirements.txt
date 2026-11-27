@@ -5,4 +5,4 @@ MarkupSafe==2.1.5
 numpy==1.26.4
 py4j==0.10.9.7
 pyarrow==16.1.0
-pyspark==3.4.3
+pyspark==4.1.0
