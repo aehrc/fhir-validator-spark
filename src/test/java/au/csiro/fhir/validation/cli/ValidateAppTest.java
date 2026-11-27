@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
+ * Tests for {@link ValidateApp} run against a local Spark master.
+ *
  * @author John Grimes
  */
 class ValidateAppTest {
