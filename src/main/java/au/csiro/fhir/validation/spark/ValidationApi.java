@@ -52,12 +52,15 @@ import static org.apache.spark.sql.functions.lit;
  *  |-- resource: string (nullable = false)          // the resource JSON
  * </pre>
  * If the input has no {@value #FILENAME_COLUMN} column, the {@code filename} column of the result
- * is null and nullable. A null value in an input {@value #FILENAME_COLUMN} column fails the job.
+ * is null and nullable. A null value in the input {@value #VALUE_COLUMN} or {@value
+ * #FILENAME_COLUMN} column fails the job.
  *
  * <p>
  * The result is computed lazily, like any Spark transformation, but the configuration is checked
- * when this method is called. Each executor thread builds one validation engine and re-uses it for
- * every partition with the same configuration.
+ * when this method is called. Each executor thread keeps one validation engine and re-uses it for
+ * every partition with the same configuration. A thread given a partition with a different
+ * configuration builds a new engine, so a single job that combines results validated with
+ * different configurations (for example a union) can rebuild engines many times.
  *
  * <p>
  * Example in Java:
