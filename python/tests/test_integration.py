@@ -92,6 +92,39 @@ def test_validate_with_an_ig_names_results_after_the_input(tmp_path):
     assert set(results.column("filename").to_pylist()) == {MIMIC_PATIENT}
 
 
+def test_log_level_info_shows_spark_info_logs(tmp_path):
+    # PySpark starts Spark as a shell, which only shows warnings until the level is changed.
+    result = run(
+        "validate",
+        MEDICATION_REQUEST,
+        str(tmp_path / "validation"),
+        "--jar",
+        JAR,
+        "--master",
+        "local[1]",
+        "-d",
+        "INFO",
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert " INFO " in result.stderr
+
+
+def test_spark_that_does_not_start_is_reported_without_a_traceback(tmp_path):
+    # The driver memory is given to the JVM when it starts, which fails on an invalid value.
+    result = run(
+        "validate",
+        MIMIC_PATIENT,
+        str(tmp_path / "validation"),
+        "--jar",
+        JAR,
+        "--driver-memory",
+        "abc",
+    )
+    assert result.returncode == 1
+    assert "Error: Spark did not start" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def test_unsupported_validator_argument_fails_before_validation(tmp_path):
     output = tmp_path / "validation"
     result = run(

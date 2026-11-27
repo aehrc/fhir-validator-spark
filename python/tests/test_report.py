@@ -172,6 +172,16 @@ def test_limit_caps_the_number_of_rows(results, tmp_path):
     assert column(rows, LEVEL) == ["fatal", "error"]
 
 
+@pytest.mark.parametrize("limit", ["0", "-1"])
+def test_limit_below_one_is_rejected(results, tmp_path, limit):
+    result = CliRunner().invoke(
+        cli.main,
+        ["report", str(results), str(tmp_path / "report.html"), "--limit", limit],
+    )
+    assert result.exit_code == 2
+    assert not (tmp_path / "report.html").exists()
+
+
 def test_partition_by_dir_takes_the_filename_from_the_directory(tmp_path):
     # Each subdirectory holds the results of one input, without a filename column.
     schema = pa.schema([field for field in RESULTS if field.name != "filename"])
