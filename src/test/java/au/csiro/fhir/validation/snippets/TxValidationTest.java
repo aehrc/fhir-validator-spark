@@ -8,16 +8,16 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 @Disabled("Used to check the output of the ValidatorCli for different scenarios")
 public class TxValidationTest {
     private static final HL7ValidationConfig NO_TX_CONFIG = HL7ValidationConfig.builder()
-            .ig("data/packages/kindlab.fhir.mimic/package.tgz")
+            .validatorArgs(List.of("-ig", "data/packages/kindlab.fhir.mimic/package.tgz"))
             .showProgress(true).build();
 
     private static final HL7ValidationConfig WITH_TX_CONFIG = HL7ValidationConfig.builder()
-            .ig("data/packages/kindlab.fhir.mimic/package.tgz")
-            .txSever("http://tx.fhir.org")
+            .validatorArgs(List.of("-ig", "data/packages/kindlab.fhir.mimic/package.tgz", "-tx", "http://tx.fhir.org"))
             .showProgress(true).build();
 
     @Test

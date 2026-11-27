@@ -30,6 +30,30 @@ class ValidateAppTest {
                 .collectAsList();
     }
 
+    /**
+     * Reads the levels of all issues from a validation output dataset.
+     */
+    static List<String> issueLevels(final String output) {
+        return SparkSession.active().read().parquet(output)
+                .selectExpr("explode(issues) AS issue")
+                .selectExpr("issue.level")
+                .as(Encoders.STRING())
+                .collectAsList();
+    }
+
+    @Test
+    void defaultReportsWarnings() {
+        // Control for ValidateAppValidatorArgsTest: with the default validation level the
+        // validator reports warnings for these resources.
+        System.setProperty("spark.master", "local[*]");
+        final String output = "target/MedicationRequest-default-validation.parquet";
+        final int exitCode = ValidateApp.execute(new String[]{MEDICATION_REQUEST_R4, output});
+        assertEquals(0, exitCode);
+
+        final List<String> levels = issueLevels(output);
+        assertTrue(levels.contains("warning"), "Expected warnings at the default level, got: " + levels);
+    }
+
     @Test
     void testSingleFile() {
         System.setProperty("spark.master", "local[*]");

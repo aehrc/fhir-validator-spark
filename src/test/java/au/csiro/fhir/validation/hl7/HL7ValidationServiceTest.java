@@ -4,13 +4,14 @@ import au.csiro.fhir.validation.ValidationResult;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class HL7ValidationServiceTest {
 
     private final HL7ValidationConfig config = HL7ValidationConfig.builder()
-            .ig("data/packages/kindlab.fhir.mimic/package.tgz")
+            .validatorArgs(List.of("-ig", "data/packages/kindlab.fhir.mimic/package.tgz"))
             .showProgress(true).build();
 
     @Test
