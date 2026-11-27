@@ -39,3 +39,7 @@ build/
 ### Mac OS ###
 .DS_Store
 /_download/
+
+### Python ###
+__pycache__/
+/python/dist/
