@@ -10,7 +10,7 @@ with [HL7 FHIR Validator](https://github.com/hapifhir/org.hl7.fhir.core).
 
 - Java 21
 - Spark 4.1.x, built for Scala 2.13
-- Maven
+- Maven, to build from source
 - Python 3.10 to 3.12
 - Pip
 
@@ -44,6 +44,124 @@ To build the project from sources, run the following command:
 
 ```sh
 mvn clean install
+```
+
+## Using the library with Spark
+
+The library is published to Maven Central as `au.csiro.fhir:fhir-validator-spark`, from version 2.0.0. The artifact is
+a single JAR that contains the HL7 FHIR Validator and its dependencies, with the libraries that clash with those of
+Spark relocated, so Spark only needs to resolve this one JAR.
+
+The entry point for Spark code is `au.csiro.fhir.validation.spark.ValidationApi.validate`, which takes a dataset of
+FHIR resources and an `HL7ValidationConfig`, and returns the validation results as a dataset:
+
+- The input has a string column `value` with one FHIR resource as JSON per row, which is what `spark.read.text` gives
+  for NDJSON files. An optional string column `filename` names the source of each resource. Other columns are ignored.
+- The configuration holds the [validator arguments](#validator-arguments), with the defaults described there.
+  Invalid arguments are reported when `validate` is called.
+- The result has one row for each resource for which the validator reports at least one issue. Resources without
+  issues are left out. If the input has no `filename` column, `filename` is null in the result.
+
+The result has this schema, which is also the schema of the output of [validate-fhir](#validate-fhir):
+
+```
+root
+ |-- filename: string (nullable = false)          // source of the resource
+ |-- issues: array (nullable = true)
+ |    |-- element: struct (containsNull = true)
+ |    |    |-- col: integer (nullable = true)      // column of the issue in the resource JSON
+ |    |    |-- level: string (nullable = false)    // fatal, error, warning or information
+ |    |    |-- line: integer (nullable = true)     // line of the issue in the resource JSON
+ |    |    |-- location: string (nullable = true)  // FHIRPath of the element with the issue
+ |    |    |-- message: string (nullable = false)  // issue message
+ |    |    |-- messageId: string (nullable = true) // validator message identifier
+ |    |    |-- type: string (nullable = false)     // issue type, as the validator classifies it
+ |-- resource: string (nullable = false)          // the resource JSON
+```
+
+Each executor thread builds its own validation engine, which holds the FHIR packages it has loaded. The examples below
+run Spark in local mode with 8 GB of driver memory; with less memory, use fewer threads (e.g. `--master local[2]`).
+They are run from the root of this repository, which has the MIMIC demo data and its implementation guide.
+
+### spark-submit
+
+To run [validate-fhir](#validate-fhir) from the published JAR:
+
+```sh
+spark-submit --packages au.csiro.fhir:fhir-validator-spark:VERSION --driver-memory 8g \
+  --class au.csiro.fhir.validation.cli.ValidateApp spark-internal \
+  data/mimic-iv-demo-10/MimicPatient.ndjson target/validation-patient \
+  --ig data/packages/kindlab.fhir.mimic/package.tgz
+```
+
+To run a PySpark script that calls the entry point, save the following as `validate.py`:
+
+```python
+from pyspark.sql import DataFrame, SparkSession
+
+spark = SparkSession.builder.getOrCreate()
+jvm = spark.sparkContext._jvm
+
+config = (
+    jvm.au.csiro.fhir.validation.hl7.HL7ValidationConfig.builder()
+    .validatorArgs(["-ig", "data/packages/kindlab.fhir.mimic/package.tgz"])
+    .build()
+)
+ndjson = spark.read.text("data/mimic-iv-demo-10/MimicPatient.ndjson")
+results = DataFrame(
+    jvm.au.csiro.fhir.validation.spark.ValidationApi.validate(ndjson._jdf, config), spark
+)
+results.selectExpr("filename", "explode(issues) AS issue").groupBy("issue.level").count().show()
+```
+
+Then run:
+
+```sh
+spark-submit --packages au.csiro.fhir:fhir-validator-spark:VERSION --driver-memory 8g validate.py
+```
+
+### pyspark and spark-shell
+
+Start `pyspark` with the package, and run the code of `validate.py` above, without creating the session:
+
+```sh
+pyspark --packages au.csiro.fhir:fhir-validator-spark:VERSION --driver-memory 8g
+```
+
+Start `spark-shell` with the package:
+
+```sh
+spark-shell --packages au.csiro.fhir:fhir-validator-spark:VERSION --driver-memory 8g
+```
+
+Then run:
+
+```scala
+import au.csiro.fhir.validation.hl7.HL7ValidationConfig
+import au.csiro.fhir.validation.spark.ValidationApi
+import scala.jdk.CollectionConverters._
+
+val args = List("-ig", "data/packages/kindlab.fhir.mimic/package.tgz")
+val config = HL7ValidationConfig.builder().validatorArgs(args.asJava).build()
+val ndjson = spark.read.text("data/mimic-iv-demo-10/MimicPatient.ndjson")
+val results = ValidationApi.validate(ndjson, config)
+results.selectExpr("filename", "explode(issues) AS issue").groupBy("issue.level").count().show()
+```
+
+### SparkSession with spark.jars.packages
+
+In a Python program, set `spark.jars.packages` when the session is created, then call the entry point as in
+`validate.py` above:
+
+```python
+from pyspark.sql import SparkSession
+
+spark = (
+    SparkSession.builder.master("local[*]")
+    .config("spark.jars.packages", "au.csiro.fhir:fhir-validator-spark:VERSION")
+    .config("spark.driver.memory", "8g")
+    .getOrCreate()
+)
 ```
 
 ## Validating FHIR Resources
@@ -138,22 +256,8 @@ dataset/
 
 For non-partitioned data the `filename` column is added to the dataset with the value of the input file.
 
-The output is a parquet dataset with the following schema:
-
-```
-      root
-     |-- resource: string (nullable = false)  // FHIR resource
-     |-- filename: string (nullable = fase)  // filename of the resource
-     |-- issues: array (nullable = true)
-     |    |-- element: struct (containsNull = false)
-     |    |    |-- level: string (nullable = false) // Issue severity (information, warning, error, fatal)
-     |    |    |-- type: string (nullable = false) // Issue type (according to the validator classification)
-     |    |    |-- message: string (nullable = false) // Issue message
-     |    |    |-- messageId: string (nullable = true) // Issue message id
-     |    |    |-- location: string (nullable = true) // Issue location, e.g. the fhirpath expression
-     |    |    |-- line: integer (nullable = true) // Issue line number
-     |    |    |-- col: integer(nullable = true) // Issue column number
-```
+The output is a parquet dataset of the resources for which the validator reports at least one issue, in the schema
+described in [Using the library with Spark](#using-the-library-with-spark).
 
 To see the available options, run the following command:
 
@@ -248,6 +352,21 @@ To see the available options, run the following command:
 ```sh
   bin/validation-report-issues.py --help
 ```
+
+## Releasing
+
+1. Set the release version in `pom.xml` (e.g. `2.0.0`), commit it and push a tag named after it (e.g. `v2.0.0`).
+2. The [Draft Release](.github/workflows/draft-release.yml) workflow checks that the version is not a SNAPSHOT,
+   creates a draft GitHub release with the binary distribution, and uploads the signed artifacts to the
+   [Central Portal](https://central.sonatype.com/publishing/deployments), where it waits until they are validated.
+3. Check the deployment in the Central Portal and publish it. Publishing to Maven Central cannot be undone: a
+   published version can never be changed or removed.
+4. Publish the draft GitHub release.
+
+The workflow needs these repository secrets: `MAVEN_CENTRAL_USERNAME` and `MAVEN_CENTRAL_PASSWORD` (a Central Portal
+user token), `GPG_PRIVATE_KEY` (an ASCII-armoured private key) and `GPG_PASSPHRASE`. To build the release artifacts
+locally without uploading them, run `mvn -Prelease verify` with the key and passphrase in the `MAVEN_GPG_KEY` and
+`MAVEN_GPG_PASSPHRASE` environment variables.
 
 ## Important note
 
