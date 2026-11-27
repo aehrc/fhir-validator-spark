@@ -23,3 +23,35 @@ jobs:
           cache-dependency-path: 'pom.xml'
       - name: Build with Maven
         run: mvn -B verify --file pom.xml
+
+  verify-python:
+    runs-on: ubuntu-latest
+    env:
+      java-version: 21
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK ${{ env.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.java-version }}
+          distribution: ${{ env.distribution }}
+          cache: 'maven'
+          cache-dependency-path: 'pom.xml'
+      - name: Build the validator JAR
+        working-directory: .
+        run: mvn -B package --file pom.xml -DskipTests
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.4.0
+      - name: Lint
+        run: |
+          uv run --locked ruff check
+          uv run --locked ruff format --check
+      - name: Test against the validator JAR
+        run: |
+          # Fails the step if the JAR is missing, rather than skipping the integration tests.
+          FHIR_VALIDATOR_JAR="$(ls "${GITHUB_WORKSPACE}"/target/fhir-validator-spark-*.jar)"
+          export FHIR_VALIDATOR_JAR
+          uv run --locked pytest -rs
